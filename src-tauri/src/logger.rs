@@ -23,8 +23,11 @@ pub fn log(message: impl AsRef<str>) {
         .duration_since(UNIX_EPOCH)
         .map(|duration| duration.as_millis())
         .unwrap_or_default();
+    // Format first and write once: several threads log concurrently and partial
+    // writes would interleave.
+    let line = format!("[{stamp}] {}\n", message.as_ref());
     if let Ok(mut file) = OpenOptions::new().create(true).append(true).open(path) {
-        let _ = writeln!(file, "[{stamp}] {}", message.as_ref());
+        let _ = file.write_all(line.as_bytes());
     }
 }
 

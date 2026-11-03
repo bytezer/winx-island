@@ -95,7 +95,6 @@ pub fn reapply_click_through_styles(hwnd: HWND) {
         if wanted != style {
             SetWindowLongPtrW(hwnd, GWL_EXSTYLE, wanted);
         }
-        logline!("exstyle={wanted:#x}");
     }
 }
 
