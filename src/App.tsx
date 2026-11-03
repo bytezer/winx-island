@@ -40,7 +40,7 @@ export default function App() {
   useEffect(() => {
     if (forcedView) return;
     if (!inside) {
-      const timeout = window.setTimeout(() => setView("compact"), 120);
+      const timeout = window.setTimeout(() => setView("compact"), 260);
       return () => window.clearTimeout(timeout);
     }
     setView((current) => (current === "compact" ? "hover" : current));

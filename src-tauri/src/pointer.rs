@@ -135,10 +135,12 @@ fn hit_test(state: &PointerState, origin_x: f64, origin_y: f64, scale: f64) -> H
         return Hit::default();
     }
 
-    let left = origin_x + rect.x * scale;
-    let top = origin_y + rect.y * scale;
-    let right = left + rect.w * scale;
-    let bottom = top + rect.h * scale;
+    // A few pixels of slack make the pill easier to catch with the cursor.
+    let slack = 4.0;
+    let left = origin_x + (rect.x - slack) * scale;
+    let top = origin_y + (rect.y - slack) * scale;
+    let right = left + (rect.w + slack * 2.0) * scale;
+    let bottom = top + (rect.h + slack * 2.0) * scale;
 
     let x = cursor.x as f64;
     let y = cursor.y as f64;

@@ -8,7 +8,9 @@ use windows::Win32::Graphics::Gdi::{
 use windows::Win32::UI::Shell::{
     SHQueryUserNotificationState, QUNS_BUSY, QUNS_PRESENTATION_MODE, QUNS_RUNNING_D3D_FULL_SCREEN,
 };
-use windows::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowRect, IsZoomed};
+use windows::Win32::UI::WindowsAndMessaging::{
+    GetClassNameW, GetForegroundWindow, GetWindowRect, IsZoomed,
+};
 
 use crate::logger::logline;
 
@@ -17,6 +19,7 @@ use crate::logger::logline;
 pub fn spawn(app: tauri::AppHandle) {
     std::thread::spawn(move || {
         let mut hidden_for_fullscreen = false;
+        let mut streak = 0_u32;
         loop {
             std::thread::sleep(Duration::from_millis(900));
 
@@ -24,7 +27,15 @@ pub fn spawn(app: tauri::AppHandle) {
                 continue;
             };
 
-            let fullscreen = is_fullscreen();
+            // A single sample can be a transient shell state, so hiding needs
+            // two consecutive fullscreen readings. Showing up again is instant.
+            if is_fullscreen() {
+                streak = streak.saturating_add(1);
+            } else {
+                streak = 0;
+            }
+            let fullscreen = streak >= 2;
+
             if fullscreen == hidden_for_fullscreen {
                 continue;
             }
@@ -36,9 +47,33 @@ pub fn spawn(app: tauri::AppHandle) {
                 let _ = window.set_ignore_cursor_events(true);
                 let _ = window.show();
             }
-            logline!("fullscreen={fullscreen} window_hidden={fullscreen}");
+            logline!(
+                "fullscreen={fullscreen} window_hidden={fullscreen} notification_state={} foreground={}",
+                notification_state(),
+                foreground_class()
+            );
         }
     });
+}
+
+fn notification_state() -> i32 {
+    unsafe {
+        SHQueryUserNotificationState()
+            .map(|state| state.0)
+            .unwrap_or(-1)
+    }
+}
+
+fn foreground_class() -> String {
+    unsafe {
+        let foreground = GetForegroundWindow();
+        if foreground.0.is_null() {
+            return "none".to_string();
+        }
+        let mut buffer = [0u16; 128];
+        let length = GetClassNameW(foreground, &mut buffer);
+        String::from_utf16_lossy(&buffer[..length.max(0) as usize])
+    }
 }
 
 fn is_fullscreen() -> bool {

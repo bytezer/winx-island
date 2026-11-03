@@ -22,6 +22,9 @@ fn main() {
     let (media_controller, media_receiver) = media::channel();
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|_app, _argv, _cwd| {
+            logline!("another instance was launched, keeping the running island");
+        }))
         .manage(pointer_state.clone())
         .manage(media_controller)
         .invoke_handler(tauri::generate_handler![
