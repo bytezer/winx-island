@@ -1,0 +1,39 @@
+[package]
+name = "winx-island"
+version = "0.1.0"
+description = "A Dynamic Island style overlay for Windows"
+authors = ["bytezer"]
+edition = "2021"
+rust-version = "1.77"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+base64 = "0.22"
+raw-window-handle = "0.6"
+tokio = { version = "1", features = ["rt", "time", "sync", "macros"] }
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.62", features = [
+  "Foundation",
+  "Media",
+  "Media_Control",
+  "Storage_Streams",
+  "Win32_Foundation",
+  "Win32_Graphics_Dwm",
+  "Win32_Graphics_Gdi",
+  "Win32_UI_Shell",
+  "Win32_UI_WindowsAndMessaging",
+  "Win32_System_WinRT",
+] }
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true
