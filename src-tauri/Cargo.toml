@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "A Dynamic Island style overlay for Windows"
 authors = ["bytezer"]
 edition = "2021"
+license = "GPL-2.0-or-later"
 rust-version = "1.77"
 
 [build-dependencies]

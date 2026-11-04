@@ -90,4 +90,18 @@ src-tauri/src/
 
 ## License
 
-MIT
+Copyright (C) 2026 bytezer
+
+winx-island is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation, either version 2 of the License, or (at your option) any later
+version.
+
+It is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+PURPOSE. See the GNU General Public License for more details.
+
+The full text is in [LICENSE](LICENSE). If you redistribute a build of this
+program, the GPL requires you to make the corresponding source code available
+to whoever receives it: ship this repository (or a link to it) alongside the
+binary, and keep any modifications under the same license.
