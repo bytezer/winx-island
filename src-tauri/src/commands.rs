@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use tauri::{AppHandle, Emitter, Manager, State};
 
-use crate::media::{Command, Controller};
+use crate::media::{Command, Controller, MediaSnapshot};
 use crate::pointer::{PointerState, Rect};
 use crate::settings::Settings;
 use crate::shortcuts;
@@ -35,6 +35,11 @@ pub fn media_control(
         "seek" => controller.send(Command::Seek(position_ms.unwrap_or(0))),
         other => controller.send(Command::Transport(other.to_string())),
     }
+}
+
+#[tauri::command]
+pub fn get_media_snapshot(controller: State<'_, Controller>) -> MediaSnapshot {
+    controller.snapshot()
 }
 
 #[tauri::command]

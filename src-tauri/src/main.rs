@@ -30,6 +30,7 @@ fn main() {
 
     let pointer_state = Arc::new(pointer::PointerState::default());
     let (media_controller, media_receiver) = media::channel();
+    let media_snapshotter = media_controller.snapshotter();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|_app, _argv, _cwd| {
@@ -40,6 +41,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             commands::set_interactive_rect,
             commands::media_control,
+            commands::get_media_snapshot,
             commands::get_settings,
             commands::set_visualizer_enabled,
             commands::set_panel_tab,
@@ -114,7 +116,7 @@ fn main() {
             });
 
             let app_handle = app.handle().clone();
-            media::spawn(app_handle.clone(), media_receiver);
+            media::spawn(app_handle.clone(), media_receiver, media_snapshotter);
             audio::spawn(app_handle.clone(), app_settings);
             focus::spawn(app_handle);
             pointer::spawn(app.handle().clone(), pointer_state.clone());

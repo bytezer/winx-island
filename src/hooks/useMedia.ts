@@ -21,11 +21,27 @@ const EMPTY: MediaSnapshot = {
 export function useMedia() {
   const [media, setMedia] = useState<MediaSnapshot>(EMPTY);
   const receivedAt = useRef<number>(performance.now());
+  const hasEvent = useRef(false);
 
   useEffect(() => {
     let disposed = false;
+
+    // The island is reloaded when the settings window is first created. The
+    // poller only emits on media changes, so pull the cached snapshot once for
+    // the gap between mount and the next event.
+    void invoke<MediaSnapshot>("get_media_snapshot")
+      .then((value) => {
+        if (disposed || hasEvent.current) return;
+        receivedAt.current = performance.now();
+        setMedia(value);
+      })
+      .catch(() => {
+        /* the window may be closing */
+      });
+
     const unsubscribe = listen<MediaSnapshot>("island://media", (event) => {
       if (disposed) return;
+      hasEvent.current = true;
       receivedAt.current = performance.now();
       setMedia(event.payload);
     });

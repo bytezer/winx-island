@@ -1,5 +1,6 @@
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
+use std::sync::{Arc, Mutex};
 
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
@@ -66,20 +67,39 @@ pub enum Command {
 #[derive(Clone)]
 pub struct Controller {
     sender: UnboundedSender<Command>,
+    latest: Arc<Mutex<MediaSnapshot>>,
 }
 
 impl Controller {
     pub fn send(&self, command: Command) -> Result<(), String> {
         self.sender.send(command).map_err(|error| error.to_string())
     }
+
+    /// Last snapshot known by the polling thread. The island fetches this after
+    /// a reload instead of waiting for a media change event.
+    pub fn snapshot(&self) -> MediaSnapshot {
+        self.latest
+            .lock()
+            .map(|snapshot| snapshot.clone())
+            .unwrap_or_default()
+    }
+
+    pub fn snapshotter(&self) -> Arc<Mutex<MediaSnapshot>> {
+        self.latest.clone()
+    }
 }
 
 pub fn channel() -> (Controller, UnboundedReceiver<Command>) {
     let (sender, receiver) = unbounded_channel();
-    (Controller { sender }, receiver)
+    let latest = Arc::new(Mutex::new(MediaSnapshot::default()));
+    (Controller { sender, latest }, receiver)
 }
 
-pub fn spawn(app: AppHandle, mut receiver: UnboundedReceiver<Command>) {
+pub fn spawn(
+    app: AppHandle,
+    mut receiver: UnboundedReceiver<Command>,
+    latest: Arc<Mutex<MediaSnapshot>>,
+) {
     std::thread::spawn(move || {
         // SMTC is apartment agnostic, but activation still needs COM.
         unsafe {
@@ -97,11 +117,15 @@ pub fn spawn(app: AppHandle, mut receiver: UnboundedReceiver<Command>) {
             }
         };
 
-        runtime.block_on(poll_loop(app, &mut receiver));
+        runtime.block_on(poll_loop(app, &mut receiver, latest));
     });
 }
 
-async fn poll_loop(app: AppHandle, receiver: &mut UnboundedReceiver<Command>) {
+async fn poll_loop(
+    app: AppHandle,
+    receiver: &mut UnboundedReceiver<Command>,
+    latest: Arc<Mutex<MediaSnapshot>>,
+) {
     let mut signature = String::new();
     let mut art_cache: Option<(u64, String)> = None;
     let mut last_error = String::new();
@@ -137,6 +161,12 @@ async fn poll_loop(app: AppHandle, receiver: &mut UnboundedReceiver<Command>) {
                 MediaSnapshot::default()
             }
         };
+
+        // Keep the latest snapshot available for windows that mount or reload
+        // between media change events.
+        if let Ok(mut current) = latest.lock() {
+            *current = snapshot.clone();
+        }
 
         let next = snapshot.signature();
         if next != signature {

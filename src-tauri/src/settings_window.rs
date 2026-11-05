@@ -81,6 +81,20 @@ fn create(app: &AppHandle) -> Result<(), String> {
             error.to_string()
         })?;
 
+    // Creating a second WebView2 controller makes the transparent island stop
+    // compositing its content: only the pill background remains painted. A page
+    // reload restores it. Hide the island first so the user never sees the
+    // blank frame; the island's on_page_load handler shows it again.
+    if let Some(island) = app.get_webview_window("island") {
+        let _ = island.hide();
+        if let Err(error) = island.reload() {
+            logline!("failed to reload the island webview: {error}");
+            let _ = island.show();
+        } else {
+            logline!("island reloaded after creating the settings window");
+        }
+    }
+
     logline!("settings window created");
     Ok(())
 }
