@@ -39,6 +39,7 @@ fn main() {
             commands::set_visualizer_enabled,
             commands::set_panel_tab,
             commands::open_shortcut,
+            commands::open_settings_location,
             commands::quit_app,
         ])
         .setup(move |app| {

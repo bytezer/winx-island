@@ -20,6 +20,27 @@ pub const SETTINGS_TARGET: &str = "ms-settings:";
 pub fn default_entries() -> Vec<ShortcutEntry> {
     vec![
         ShortcutEntry {
+            id: "wsl-workspace".to_string(),
+            kind: "folder".to_string(),
+            label: "WSL Workspace".to_string(),
+            icon: "folder".to_string(),
+            path: r"\\wsl.localhost\Ubuntu-26.04\home\zero\workspace".to_string(),
+        },
+        ShortcutEntry {
+            id: "r4m-monorepo".to_string(),
+            kind: "folder".to_string(),
+            label: "R4M Monorepo".to_string(),
+            icon: "folder".to_string(),
+            path: r"\\wsl.localhost\Ubuntu-26.04\home\zero\workspace\r4m_monorepo_front".to_string(),
+        },
+        ShortcutEntry {
+            id: "backone-r4m".to_string(),
+            kind: "folder".to_string(),
+            label: "Backone R4M".to_string(),
+            icon: "folder".to_string(),
+            path: r"\\wsl.localhost\Ubuntu-26.04\home\zero\workspace\backone_r4m".to_string(),
+        },
+        ShortcutEntry {
             id: "downloads".to_string(),
             kind: "folder".to_string(),
             label: "Downloads".to_string(),
@@ -151,5 +172,23 @@ fn shell_open(target: &str) -> Result<(), String> {
         Ok(())
     } else {
         Err(format!("ShellExecuteW failed for {target}"))
+    }
+}
+
+/// Reveals a file in Explorer with the file pre-selected.
+pub fn reveal_in_explorer(path: &Path) -> Result<(), String> {
+    use windows::core::HSTRING;
+
+    let program = HSTRING::from("explorer.exe");
+    let parameters = HSTRING::from(format!("/select,\"{}\"", path.display()));
+    let empty = HSTRING::new();
+    let instance: HINSTANCE = unsafe {
+        ShellExecuteW(None, w!("open"), &program, &parameters, &empty, SW_SHOWNORMAL)
+    };
+
+    if instance.0 as usize > 32 {
+        Ok(())
+    } else {
+        Err(format!("failed to reveal {path:?} in Explorer"))
     }
 }

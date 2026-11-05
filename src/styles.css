@@ -596,6 +596,22 @@ body {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 10px;
+  max-height: 172px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.shortcuts-grid::-webkit-scrollbar {
+  width: 5px;
+}
+
+.shortcuts-grid::-webkit-scrollbar-thumb {
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.shortcuts-grid::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .shortcut-tile {
@@ -658,6 +674,13 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+.ghost-button.icon-only {
+  width: 24px;
+  padding: 0;
+  display: grid;
+  place-items: center;
 }
 
 .toggle-button {

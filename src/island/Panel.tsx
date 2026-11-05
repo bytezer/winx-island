@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { MediaAction, MediaSnapshot, PanelTab, Shortcut } from "../types";
-import { changePanelTab, changeVisualizer } from "../hooks/useSettings";
+import { changePanelTab, changeVisualizer, revealSettings } from "../hooks/useSettings";
+import { SettingsIcon } from "./icons";
 import { CoverArt } from "./CoverArt";
 import { MiniVisualizer } from "./MiniVisualizer";
 import { ProgressBar } from "./ProgressBar";
@@ -71,7 +72,7 @@ function ShortcutsPanel({ shortcuts }: ShortcutsPanelProps) {
         <span className="shortcuts-title">Shortcuts</span>
         <span className="shortcuts-hint">
           {shortcuts.length > 0
-            ? `${shortcuts.length} of max 8 defined in settings.yaml`
+            ? `${shortcuts.length} defined in settings.yaml`
             : "No shortcuts defined in settings.yaml"}
         </span>
       </div>
@@ -150,6 +151,18 @@ export function Panel({
       <div className="panel-footer">
         <span className="wordmark">winx-island</span>
         <div className="footer-actions">
+          <button
+            type="button"
+            className="ghost-button icon-only"
+            aria-label="Open the settings file in Explorer"
+            title="Open the settings file in Explorer"
+            onClick={(event) => {
+              event.stopPropagation();
+              void revealSettings();
+            }}
+          >
+            <SettingsIcon size={14} />
+          </button>
           <button
             type="button"
             className="toggle-button"

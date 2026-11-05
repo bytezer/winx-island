@@ -55,6 +55,16 @@ pub fn set_panel_tab(tab: String, settings: State<'_, Arc<Settings>>, app: AppHa
 }
 
 #[tauri::command]
+pub fn open_settings_location(settings: State<'_, Arc<Settings>>) {
+    // Reveal, never edit: the default .yaml editor may not exist on the host.
+    settings.ensure_file();
+    let path = crate::settings::data_dir().join("settings.yaml");
+    if let Err(error) = shortcuts::reveal_in_explorer(&path) {
+        crate::logger::log(format!("settings reveal failed: {error}"));
+    }
+}
+
+#[tauri::command]
 pub fn open_shortcut(id: String, settings: State<'_, Arc<Settings>>) {
     let Some(entry) = settings.entry(&id) else {
         crate::logger::log(format!("shortcut '{id}' is not defined"));

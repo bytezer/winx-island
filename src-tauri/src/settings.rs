@@ -100,6 +100,26 @@ pub struct Settings {
     path: PathBuf,
 }
 
+/// Comment header written above every save so the file is self-documenting.
+const SETTINGS_HEADER: &str = r#"# winx-island settings
+#
+# Shortcuts are declared here and picked up on the next app start.
+# - kind: folder   -> opens itself in Explorer; "path" is required
+# - kind: action   -> built-in targets: recycle-bin, settings, suspend
+# - icon names: folder, download, documents, pictures, desktop, trash,
+#   settings, suspend
+# - Windows paths may use %VAR% expansion, for example
+#   "%USERPROFILE%\Documents".
+# - WSL folders live under \\wsl.localhost\\<distro>\\..., for example
+#   \\wsl.localhost\\Ubuntu\\home\\zero\\projects. The distro must be
+#   running, otherwise the tile is drawn in red until it is.
+# - The grid scrolls, so any number of tiles works.
+# - "ui.lastPanelTab" is one of: media, shortcuts.
+# - "visualizer.enabled" drives the peak meter bars.
+
+#"#;
+
+
 impl Settings {
     pub fn load() -> Arc<Self> {
         let path = data_dir().join("settings.yaml");
@@ -172,6 +192,18 @@ impl Settings {
         }
     }
 
+    /// Makes sure the file exists so the settings location button always has
+    /// something to reveal.
+    pub fn ensure_file(&self) {
+        let snapshot = {
+            let Ok(file) = self.state.read() else {
+                return;
+            };
+            file.clone()
+        };
+        Self::write(&self.path, &snapshot);
+    }
+
     pub fn set_visualizer_enabled(&self, enabled: bool) {
         self.update(|file| file.visualizer.enabled = enabled);
     }
@@ -196,10 +228,11 @@ impl Settings {
 
     fn write(path: &PathBuf, file: &SettingsFile) {
         match serde_yaml::to_string(file) {
-            Ok(text) => {
+            Ok(document) => {
                 if let Some(parent) = path.parent() {
                     let _ = fs::create_dir_all(parent);
                 }
+                let text = format!("{SETTINGS_HEADER}{document}");
                 if let Err(error) = fs::write(path, text) {
                     logline!("failed to save settings: {error}");
                 }

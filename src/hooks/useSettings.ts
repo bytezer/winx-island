@@ -46,3 +46,7 @@ export async function changePanelTab(tab: PanelTab) {
 export async function launchShortcut(id: string) {
   await invoke("open_shortcut", { id });
 }
+
+export async function revealSettings() {
+  await invoke("open_settings_location");
+}
