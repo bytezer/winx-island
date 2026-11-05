@@ -76,8 +76,23 @@ fn foreground_class() -> String {
     }
 }
 
+/// The desktop is a full-bleed window, but the island lives on top of it.
+const DESKTOP_WINDOW_CLASSES: [&str; 2] = ["Progman", "WorkerW"];
+
 fn is_fullscreen() -> bool {
     unsafe {
+        let foreground = GetForegroundWindow();
+        if foreground.0.is_null() {
+            return false;
+        }
+
+        let mut class_buffer = [0u16; 64];
+        let class_length = GetClassNameW(foreground, &mut class_buffer);
+        let class = String::from_utf16_lossy(&class_buffer[..class_length.max(0) as usize]);
+        if DESKTOP_WINDOW_CLASSES.contains(&class.as_str()) {
+            return false;
+        }
+
         if let Ok(state) = SHQueryUserNotificationState() {
             if state == QUNS_RUNNING_D3D_FULL_SCREEN
                 || state == QUNS_PRESENTATION_MODE
@@ -85,11 +100,6 @@ fn is_fullscreen() -> bool {
             {
                 return true;
             }
-        }
-
-        let foreground = GetForegroundWindow();
-        if foreground.0.is_null() {
-            return false;
         }
 
         // A maximized window with an auto-hidden taskbar matches the monitor

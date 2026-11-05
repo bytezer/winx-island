@@ -12,10 +12,15 @@ and ignores clicks outside the visible pill.
 
 - Compact pill with live cover art and a playing waveform.
 - Hover card with track metadata, transport controls and a seekable progress bar.
-- Expanded panel with a blurred artwork backdrop and a quit action.
+- Expanded panel with a blurred artwork backdrop, a shortcuts tab and a quit action.
 - Media data read from the Windows Global System Media Transport Controls
   (SMTC), so it works with Spotify, browsers, VLC and any other well-behaved
   player.
+- Peak meter visualizer driven by the output device (IAudioMeterInformation),
+  togglable from the panel footer.
+- Shortcut tab: open personal folders and built-in system actions (recycle bin,
+  Windows settings, suspend).
+- Single instance enforced per session.
 - Automatically hides while a fullscreen app or game is in the foreground.
 
 ## Requirements
@@ -67,19 +72,46 @@ during development: launching, screenshots, window probing and input tests.
 
 ```
 src/                     React frontend (the island itself)
-  island/                pill, hover card, panel, transport, progress
-  hooks/                 media events, pointer hit-testing bridge
+  island/                pill, hover card, panel, transport, progress, shortcuts
+  hooks/                 media, level and settings events; pointer bridge
   lib/                   layout constants, formatting, accent extraction
 src-tauri/src/
   main.rs                window creation and app wiring
   window_setup.rs        native window flags, DWM tweaks, placement
   pointer.rs             cursor polling and click-through toggling
   media.rs               SMTC polling and transport commands
+  audio.rs               output peak meter for the visualizer
+  settings.rs            %APPDATA%\winx-island\settings.yaml
+  shortcuts.rs           default shortcuts, path expansion, open actions
   focus.rs               fullscreen detection
   commands.rs            IPC commands
 ```
 
-## Notes and limitations
+## Settings
+
+`%APPDATA%\winx-island\settings.yaml` is created with defaults on first run:
+
+```yaml
+visualizer:
+  enabled: true
+shortcuts:
+  - id: downloads
+    kind: folder
+    label: Downloads
+    icon: download
+    path: "%USERPROFILE%\\Downloads"
+  - id: suspend
+    kind: action
+    label: Suspend
+    icon: suspend
+ui:
+  lastPanelTab: media
+```
+
+Paths may use `%VAR%` environment expansion. Folder shortcuts are disabled and
+drawn in red while their target is missing. Edits to `shortcuts` or
+`lastPanelTab` are picked up on the next start; switching tabs in the panel and
+toggling the visualizer write the file immediately.
 
 - Window shell surfaces (Start menu, notification centre, Task View, UAC) are
   drawn above any topmost window, so the island hides behind them.

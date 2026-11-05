@@ -5,9 +5,10 @@ import { Waveform } from "./Waveform";
 interface CompactPillProps {
   media: MediaSnapshot;
   clock: string;
+  visualizer: boolean;
 }
 
-export function CompactPill({ media, clock }: CompactPillProps) {
+export function CompactPill({ media, clock, visualizer }: CompactPillProps) {
   if (!media.available) {
     return (
       <div className="compact compact-idle">
@@ -20,7 +21,7 @@ export function CompactPill({ media, clock }: CompactPillProps) {
   return (
     <div className="compact">
       <CoverArt src={media.art} size={26} radius={8} />
-      <Waveform playing={media.playing} />
+      <Waveform playing={media.playing} visualizer={visualizer} />
     </div>
   );
 }

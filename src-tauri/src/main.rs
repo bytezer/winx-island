@@ -1,10 +1,13 @@
 #![windows_subsystem = "windows"]
 
+mod audio;
 mod commands;
 mod focus;
 mod logger;
 mod media;
 mod pointer;
+mod settings;
+mod shortcuts;
 mod window_setup;
 
 use std::sync::Arc;
@@ -20,6 +23,7 @@ fn main() {
 
     let pointer_state = Arc::new(pointer::PointerState::default());
     let (media_controller, media_receiver) = media::channel();
+    let app_settings = settings::Settings::load();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|_app, _argv, _cwd| {
@@ -27,18 +31,25 @@ fn main() {
         }))
         .manage(pointer_state.clone())
         .manage(media_controller)
+        .manage(app_settings.clone())
         .invoke_handler(tauri::generate_handler![
             commands::set_interactive_rect,
             commands::media_control,
+            commands::get_settings,
+            commands::set_visualizer_enabled,
+            commands::set_panel_tab,
+            commands::open_shortcut,
             commands::quit_app,
         ])
         .setup(move |app| {
             logline!("creating island window");
 
             let start_view = std::env::var("WINX_START_VIEW").unwrap_or_default();
+            let start_tab = std::env::var("WINX_START_TAB").unwrap_or_default();
             let init_script = format!(
-                "window.__winxStartView = {};",
-                serde_json::to_string(&start_view).unwrap_or_else(|_| "\"\"".to_string())
+                "window.__winxStartView = {}; window.__winxStartTab = {};",
+                serde_json::to_string(&start_view).unwrap_or_else(|_| "\"\"".to_string()),
+                serde_json::to_string(&start_tab).unwrap_or_else(|_| "\"\"".to_string())
             );
 
             let window = WebviewWindowBuilder::new(app, "island", WebviewUrl::App("index.html".into()))
@@ -83,6 +94,7 @@ fn main() {
 
             let app_handle = app.handle().clone();
             media::spawn(app_handle.clone(), media_receiver);
+            audio::spawn(app_handle.clone(), app_settings.clone());
             focus::spawn(app_handle);
             pointer::spawn(app.handle().clone(), pointer_state.clone());
 

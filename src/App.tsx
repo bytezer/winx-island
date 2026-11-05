@@ -2,9 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { LAYOUT } from "./lib/layout";
 import { extractAccent } from "./lib/accent";
 import { formatClock } from "./lib/format";
+import { useSettings } from "./hooks/useSettings";
 import { sendMediaAction, seekTo, useMedia, usePlayhead } from "./hooks/useMedia";
 import { useInteractiveRect, usePointerInside } from "./hooks/usePointer";
-import type { View } from "./types";
+import type { PanelTab, View } from "./types";
 import { CompactPill } from "./island/CompactPill";
 import { HoverCard } from "./island/HoverCard";
 import { Panel } from "./island/Panel";
@@ -19,12 +20,20 @@ const forcedView: View | undefined = (() => {
   return value === "compact" || value === "hover" || value === "panel" ? value : undefined;
 })();
 
+/** Debug helper: freezes the panel tab (WINX_START_TAB=media|shortcuts). */
+const forcedPanelTab: PanelTab | undefined = (() => {
+  const value = (window as unknown as { __winxStartTab?: string }).__winxStartTab;
+  return value === "media" || value === "shortcuts" ? value : undefined;
+})();
+
 export default function App() {
   const { media, receivedAt } = useMedia();
+  const { visualizerEnabled, lastPanelTab, shortcuts } = useSettings();
   const inside = usePointerInside();
   const [view, setView] = useState<View>(forcedView ?? "compact");
   const [accent, setAccent] = useState<string | null>(null);
   const [now, setNow] = useState(() => new Date());
+  const [panelTab, setPanelTab] = useState<PanelTab>(forcedPanelTab ?? lastPanelTab);
 
   useInteractiveRect(view);
 
@@ -71,9 +80,17 @@ export default function App() {
     void seekTo(value);
   }, []);
 
+  const onTab = useCallback((tab: PanelTab) => {
+    setPanelTab(tab);
+  }, []);
+
   const togglePanel = useCallback(() => {
     setView((current) => (current === "panel" ? "hover" : "panel"));
   }, []);
+
+  useEffect(() => {
+    if (!forcedPanelTab) setPanelTab(lastPanelTab);
+  }, [lastPanelTab]);
 
   const box = LAYOUT[view];
   const clock = useMemo(() => formatClock(now), [now]);
@@ -95,15 +112,30 @@ export default function App() {
         <div className="glow" />
 
         <div className="layer" data-active={view === "compact"}>
-          <CompactPill media={media} clock={clock} />
+          <CompactPill media={media} clock={clock} visualizer={visualizerEnabled} />
         </div>
 
         <div className="layer" data-active={view === "hover"}>
-          <HoverCard media={media} positionMs={positionMs} onAction={onAction} onSeek={onSeek} />
+          <HoverCard
+            media={media}
+            positionMs={positionMs}
+            visualizer={visualizerEnabled}
+            onAction={onAction}
+            onSeek={onSeek}
+          />
         </div>
 
         <div className="layer" data-active={view === "panel"}>
-          <Panel media={media} positionMs={positionMs} onAction={onAction} onSeek={onSeek} />
+          <Panel
+            media={media}
+            positionMs={positionMs}
+            panelTab={panelTab}
+            shortcuts={shortcuts}
+            visualizer={visualizerEnabled}
+            onAction={onAction}
+            onSeek={onSeek}
+            onTab={onTab}
+          />
         </div>
       </div>
     </div>

@@ -20,3 +20,19 @@ export interface PointerEvent {
 export type MediaAction = "play_pause" | "next" | "prev";
 
 export type View = "compact" | "hover" | "panel";
+
+export type PanelTab = "media" | "shortcuts";
+
+export interface Shortcut {
+  id: string;
+  kind: "folder" | "action";
+  label: string;
+  icon: string;
+  missing: boolean;
+}
+
+export interface SettingsState {
+  visualizerEnabled: boolean;
+  lastPanelTab: PanelTab;
+  shortcuts: Shortcut[];
+}

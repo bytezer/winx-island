@@ -179,6 +179,12 @@ body {
   opacity: 0.95;
 }
 
+.waveform.is-peak span {
+  animation: none;
+  opacity: 0.95;
+  transition: height 90ms linear;
+}
+
 @keyframes wave {
   0%,
   100% {
@@ -360,6 +366,34 @@ body {
   height: 34px;
 }
 
+/* --------------------------------------------------------- mini visualizer -- */
+
+.mini-visualizer {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 20px;
+  flex: none;
+}
+
+.mini-visualizer span {
+  width: 3px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #ffffff, var(--accent));
+  transition: height 90ms linear;
+}
+
+.hover-bottom {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.hover-bottom .progress-block {
+  flex: 1;
+  min-width: 0;
+}
+
 /* -------------------------------------------------------------- progress -- */
 
 .progress-block {
@@ -439,6 +473,42 @@ body {
 
 /* ------------------------------------------------------------------ panel -- */
 
+.panel-tabs {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 2;
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.panel-tabs button {
+  padding: 3px 9px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted-2);
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.panel-tabs button:hover {
+  color: var(--text);
+}
+
+.panel-tabs button.is-active {
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--text);
+}
+
 .panel {
   position: relative;
   height: 100%;
@@ -459,11 +529,156 @@ body {
   pointer-events: none;
 }
 
+.panel-media {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+}
+
 .panel-header {
   display: flex;
   align-items: center;
   gap: 14px;
   min-width: 0;
+  padding-right: 108px;
+}
+
+.panel-header .meta {
+  min-width: 0;
+}
+
+.panel-transport {
+  margin-top: auto;
+  position: relative;
+}
+
+.panel-transport .mini-visualizer {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* ------------------------------------------------------------ shortcuts -- */
+
+.panel-shortcuts {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+}
+
+.shortcuts-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 6px;
+  padding-right: 116px;
+}
+
+.shortcuts-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.shortcuts-hint {
+  font-size: 10px;
+  color: var(--muted-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shortcuts-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.shortcut-tile {
+  height: 76px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px 6px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  cursor: pointer;
+  transition: background 150ms ease, transform 120ms ease, border-color 150ms ease;
+}
+
+.shortcut-tile:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.shortcut-tile:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.shortcut-tile:disabled {
+  cursor: default;
+}
+
+.shortcut-tile.is-missing {
+  border-color: rgba(255, 99, 99, 0.35);
+  color: var(--muted-2);
+}
+
+.shortcut-tile.is-missing .tile-glyph {
+  color: rgba(255, 99, 99, 0.8);
+}
+
+.tile-glyph {
+  width: 34px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+}
+
+.tile-label {
+  max-width: 100%;
+  font-size: 10.5px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------------------------------------------------------------- footer -- */
+
+.footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.toggle-button {
+  height: 24px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 9px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.toggle-button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
 }
 
 .badge {

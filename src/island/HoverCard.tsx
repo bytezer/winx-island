@@ -1,16 +1,18 @@
 import type { MediaSnapshot } from "../types";
 import { CoverArt } from "./CoverArt";
 import { ProgressBar } from "./ProgressBar";
+import { MiniVisualizer } from "./MiniVisualizer";
 import { Transport } from "./Transport";
 
 interface HoverCardProps {
   media: MediaSnapshot;
   positionMs: number;
+  visualizer: boolean;
   onAction: (action: "play_pause" | "next" | "prev") => void;
   onSeek: (positionMs: number) => void;
 }
 
-export function HoverCard({ media, positionMs, onAction, onSeek }: HoverCardProps) {
+export function HoverCard({ media, positionMs, visualizer, onAction, onSeek }: HoverCardProps) {
   return (
     <div className="hover-card">
       <div className="hover-main">
@@ -25,13 +27,16 @@ export function HoverCard({ media, positionMs, onAction, onSeek }: HoverCardProp
         <Transport media={media} onAction={onAction} />
       </div>
 
-      <ProgressBar
-        positionMs={positionMs}
-        durationMs={media.durationMs}
-        enabled={media.available && media.canSeek}
-        showTimes={media.durationMs > 0}
-        onSeek={onSeek}
-      />
+      <div className="hover-bottom">
+        <ProgressBar
+          positionMs={positionMs}
+          durationMs={media.durationMs}
+          enabled={media.available && media.canSeek}
+          showTimes={media.durationMs > 0}
+          onSeek={onSeek}
+        />
+        <MiniVisualizer visualizer={visualizer} playing={media.playing} />
+      </div>
     </div>
   );
 }
