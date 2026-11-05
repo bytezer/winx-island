@@ -2,6 +2,7 @@
 
 mod audio;
 mod commands;
+mod drag;
 mod focus;
 mod logger;
 mod media;
@@ -43,6 +44,7 @@ fn main() {
             commands::set_panel_tab,
             commands::open_shortcut,
             commands::open_settings_location,
+            commands::begin_drag,
             commands::quit_app,
         ])
         .setup(move |app| {
@@ -90,7 +92,8 @@ fn main() {
                 .build()?;
 
             window_setup::configure(&window);
-            window_setup::place(&window);
+            let appearance = app_settings.appearance();
+            window_setup::place(&window, appearance.offset_x as f64, appearance.offset_y as f64);
 
             // Safety net in case the page load handler never fires.
             let reveal = window.clone();

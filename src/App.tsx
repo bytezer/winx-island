@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { LAYOUT } from "./lib/layout";
+import { invoke } from "@tauri-apps/api/core";
+import { layoutFor } from "./lib/layout";
 import { extractAccent } from "./lib/accent";
 import { formatClock } from "./lib/format";
 import { useSettings } from "./hooks/useSettings";
@@ -28,14 +29,15 @@ const forcedPanelTab: PanelTab | undefined = (() => {
 
 export default function App() {
   const { media, receivedAt } = useMedia();
-  const { visualizerEnabled, lastPanelTab, shortcuts } = useSettings();
+  const { visualizerEnabled, appearance, lastPanelTab, shortcuts } = useSettings();
   const inside = usePointerInside();
   const [view, setView] = useState<View>(forcedView ?? "compact");
   const [accent, setAccent] = useState<string | null>(null);
   const [now, setNow] = useState(() => new Date());
   const [panelTab, setPanelTab] = useState<PanelTab>(forcedPanelTab ?? lastPanelTab);
 
-  useInteractiveRect(view);
+  const layout = useMemo(() => layoutFor(appearance), [appearance]);
+  useInteractiveRect(view, layout);
 
   // Idle clock: only ticks while the compact pill is showing nothing playing.
   useEffect(() => {
@@ -92,7 +94,7 @@ export default function App() {
     if (!forcedPanelTab) setPanelTab(lastPanelTab);
   }, [lastPanelTab]);
 
-  const box = LAYOUT[view];
+  const box = layout[view];
   const clock = useMemo(() => formatClock(now), [now]);
 
   return (
@@ -108,6 +110,14 @@ export default function App() {
           ["--accent" as string]: accent ?? "#8a8f98",
         }}
         onClick={togglePanel}
+        onPointerDown={(event) => {
+          // Right-drag repositions the window; the native side owns the gesture.
+          if (event.button === 2) {
+            event.preventDefault();
+            void invoke("begin_drag");
+          }
+        }}
+        onContextMenu={(event) => event.preventDefault()}
       >
         <div className="glow" />
 

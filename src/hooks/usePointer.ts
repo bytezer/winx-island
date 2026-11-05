@@ -2,7 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useState } from "react";
 import type { PointerEvent } from "../types";
-import { islandRect } from "../lib/layout";
+import { islandRect, type IslandBox } from "../lib/layout";
 import type { View } from "../types";
 
 /**
@@ -27,11 +27,11 @@ export function usePointerInside(): boolean {
 }
 
 /** Keeps the native hit-test region in sync with the current island size. */
-export function useInteractiveRect(view: View) {
+export function useInteractiveRect(view: View, layout: Record<View, IslandBox>) {
   useEffect(() => {
-    const rect = islandRect(view);
+    const rect = islandRect(view, layout);
     void invoke("set_interactive_rect", { rect }).catch(() => {
       /* the window may be closing */
     });
-  }, [view]);
+  }, [view, layout]);
 }

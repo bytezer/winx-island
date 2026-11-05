@@ -98,8 +98,9 @@ pub fn reapply_click_through_styles(hwnd: HWND) {
     }
 }
 
-/// Places the canvas horizontally centred on the primary monitor.
-pub fn place(window: &WebviewWindow) {
+/// Places the canvas horizontally centred on the primary monitor, shifted by
+/// the user configured offset.
+pub fn place(window: &WebviewWindow, offset_x: f64, offset_y: f64) {
     let Ok(Some(monitor)) = window.primary_monitor() else {
         logline!("no primary monitor available");
         return;
@@ -109,13 +110,13 @@ pub fn place(window: &WebviewWindow) {
     let size = monitor.size();
     let position = monitor.position();
     let width = (CANVAS_WIDTH * scale).round() as i32;
-    let x = position.x + (size.width as i32 - width) / 2;
-    let y = position.y + (TOP_MARGIN * scale).round() as i32;
+    let x = position.x + (size.width as i32 - width) / 2 + (offset_x * scale).round() as i32;
+    let y = position.y + (TOP_MARGIN * scale).round() as i32 + (offset_y * scale).round() as i32;
 
     let _ = window.set_size(LogicalSize::new(CANVAS_WIDTH, CANVAS_HEIGHT));
     let _ = window.set_position(PhysicalPosition::new(x, y));
     logline!(
-        "placed at x={x} y={y} canvas={}x{} scale={scale}",
+        "placed at x={x} y={y} offset=({offset_x},{offset_y}) canvas={}x{} scale={scale}",
         CANVAS_WIDTH,
         CANVAS_HEIGHT
     );

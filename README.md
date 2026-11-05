@@ -20,6 +20,8 @@ and ignores clicks outside the visible pill.
   togglable from the panel footer.
 - Shortcut tab: open personal folders and built-in system actions (recycle bin,
   Windows settings, suspend).
+- Configurable pill size and window position, either in settings.yaml or by
+  right-dragging the island.
 - Single instance enforced per session.
 - Automatically hides while a fullscreen app or game is in the foreground.
 
@@ -94,6 +96,11 @@ src-tauri/src/
 ```yaml
 visualizer:
   enabled: true
+appearance:
+  compactWidth: 132     # collapsed pill, logical px (100-320)
+  compactHeight: 40     # 28-64
+  offsetX: 0            # window offset from the top-centre anchor (-200..200)
+  offsetY: 0            # -10..200
 shortcuts:
   - id: downloads
     kind: folder
@@ -107,6 +114,10 @@ shortcuts:
 ui:
   lastPanelTab: media
 ```
+
+Right-drag the island with the right mouse button to move it; the resulting
+offset is written back to `appearance.offsetX` / `offsetY` and clamped to the
+ranges above so the hit-test canvas always stays on screen.
 
 Paths may use `%VAR%` environment expansion. Folder shortcuts are disabled and
 drawn in red while their target is missing. Edits to `shortcuts` or

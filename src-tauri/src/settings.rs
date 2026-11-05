@@ -42,6 +42,53 @@ impl Default for UiSettings {
     }
 }
 
+/// Accepts both `190` and `190.0` so hand edits and older files keep working.
+fn de_number<'de, D>(deserializer: D) -> Result<i32, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let value = f64::deserialize(deserializer)?;
+    Ok(value.round() as i32)
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct AppearanceSettings {
+    /// Compact pill size in logical pixels.
+    #[serde(deserialize_with = "de_number")]
+    pub compact_width: i32,
+    #[serde(deserialize_with = "de_number")]
+    pub compact_height: i32,
+    /// Window offset from the top-centre anchor, in logical pixels.
+    #[serde(deserialize_with = "de_number")]
+    pub offset_x: i32,
+    #[serde(deserialize_with = "de_number")]
+    pub offset_y: i32,
+}
+
+impl Default for AppearanceSettings {
+    fn default() -> Self {
+        Self {
+            compact_width: 132,
+            compact_height: 40,
+            offset_x: 0,
+            offset_y: 0,
+        }
+    }
+}
+
+impl AppearanceSettings {
+    /// Keeps the window (and therefore the hit-test canvas) on screen.
+    pub fn clamped(&self) -> Self {
+        Self {
+            compact_width: self.compact_width.clamp(100, 320),
+            compact_height: self.compact_height.clamp(28, 64),
+            offset_x: self.offset_x.clamp(-200, 200),
+            offset_y: self.offset_y.clamp(-10, 200),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ShortcutEntry {
@@ -58,6 +105,7 @@ pub struct ShortcutEntry {
 #[serde(default, rename_all = "camelCase")]
 pub struct SettingsFile {
     pub visualizer: VisualizerSettings,
+    pub appearance: AppearanceSettings,
     pub shortcuts: Vec<ShortcutEntry>,
     pub ui: UiSettings,
 }
@@ -66,6 +114,7 @@ impl SettingsFile {
     fn defaults() -> Self {
         Self {
             visualizer: VisualizerSettings::default(),
+            appearance: AppearanceSettings::default(),
             shortcuts: shortcuts::default_entries(),
             ui: UiSettings::default(),
         }
@@ -91,6 +140,7 @@ pub struct ShortcutView {
 #[serde(rename_all = "camelCase")]
 pub struct SettingsView {
     pub visualizer_enabled: bool,
+    pub appearance: AppearanceSettings,
     pub last_panel_tab: String,
     pub shortcuts: Vec<ShortcutView>,
 }
@@ -116,6 +166,9 @@ const SETTINGS_HEADER: &str = r#"# winx-island settings
 # - The grid scrolls, so any number of tiles works.
 # - "ui.lastPanelTab" is one of: media, shortcuts.
 # - "visualizer.enabled" drives the peak meter bars.
+# - "appearance.compactWidth" / "compactHeight" size the collapsed pill.
+# - "appearance.offsetX" / "offsetY" move the window from the top-centre
+#   anchor; right-drag the island to set them by hand.
 
 "#;
 
@@ -189,6 +242,7 @@ impl Settings {
             .unwrap_or_default();
         SettingsView {
             visualizer_enabled: file.visualizer.enabled,
+            appearance: file.appearance.clamped(),
             last_panel_tab: file.ui.last_panel_tab.clone(),
             shortcuts: file
                 .shortcuts
@@ -218,6 +272,26 @@ impl Settings {
 
     pub fn set_visualizer_enabled(&self, enabled: bool) {
         self.update(|file| file.visualizer.enabled = enabled);
+    }
+
+    pub fn appearance(&self) -> AppearanceSettings {
+        self.state
+            .read()
+            .map(|file| file.appearance.clamped())
+            .unwrap_or_default()
+    }
+
+    pub fn set_offset(&self, x: i32, y: i32) {
+        self.update(|file| {
+            let clamped = AppearanceSettings {
+                offset_x: x,
+                offset_y: y,
+                ..file.appearance.clone()
+            }
+            .clamped();
+            file.appearance.offset_x = clamped.offset_x;
+            file.appearance.offset_y = clamped.offset_y;
+        });
     }
 
     pub fn set_last_panel_tab(&self, tab: &str) {

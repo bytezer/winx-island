@@ -32,6 +32,8 @@ impl Default for Rect {
 pub struct PointerState {
     pub rect: Mutex<Rect>,
     pub inside: AtomicBool,
+    /// Set while a right-button drag is in progress: click-through stays off.
+    pub dragging: AtomicBool,
 }
 
 impl Default for PointerState {
@@ -39,6 +41,7 @@ impl Default for PointerState {
         Self {
             rect: Mutex::new(Rect::default()),
             inside: AtomicBool::new(false),
+            dragging: AtomicBool::new(false),
         }
     }
 }
@@ -76,6 +79,13 @@ pub fn spawn(app: AppHandle, state: Arc<PointerState>) {
             let Some(window) = app.get_webview_window("island") else {
                 continue;
             };
+
+            // A drag owns the pointer and the window position; emitting
+            // hover changes mid-gesture would collapse the island.
+            if state.dragging.load(Ordering::Relaxed) {
+                last = None;
+                continue;
+            }
 
             // Querying the runtime for the window rect every frame is wasteful;
             // the window only moves on startup or a display change.

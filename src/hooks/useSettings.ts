@@ -5,6 +5,7 @@ import type { PanelTab, SettingsState } from "../types";
 
 const DEFAULTS: SettingsState = {
   visualizerEnabled: true,
+  appearance: { compactWidth: 132, compactHeight: 40, offsetX: 0, offsetY: 0 },
   lastPanelTab: "media",
   shortcuts: [],
 };

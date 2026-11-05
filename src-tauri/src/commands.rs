@@ -55,6 +55,15 @@ pub fn set_panel_tab(tab: String, settings: State<'_, Arc<Settings>>, app: AppHa
 }
 
 #[tauri::command]
+pub fn begin_drag(
+    app: AppHandle,
+    state: State<'_, Arc<PointerState>>,
+    settings: State<'_, Arc<Settings>>,
+) {
+    crate::drag::begin(app, state.inner().clone(), settings.inner().clone());
+}
+
+#[tauri::command]
 pub fn open_settings_location(settings: State<'_, Arc<Settings>>) {
     // Reveal, never edit: the default .yaml editor may not exist on the host.
     settings.ensure_file();

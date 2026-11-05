@@ -31,8 +31,16 @@ export interface Shortcut {
   missing: boolean;
 }
 
+export interface Appearance {
+  compactWidth: number;
+  compactHeight: number;
+  offsetX: number;
+  offsetY: number;
+}
+
 export interface SettingsState {
   visualizerEnabled: boolean;
+  appearance: Appearance;
   lastPanelTab: PanelTab;
   shortcuts: Shortcut[];
 }
