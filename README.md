@@ -22,6 +22,8 @@ and ignores clicks outside the visible pill.
   Windows settings, suspend).
 - Configurable pill size and window position, either in settings.yaml or by
   right-dragging the island.
+- Settings window for the visualizer switch, colour theme, pill size and a
+  position reset, opened from the gear icon in the panel footer.
 - Single instance enforced per session.
 - Automatically hides while a fullscreen app or game is in the foreground.
 
@@ -82,12 +84,14 @@ subsystem executable and has no console.
 ## Layout
 
 ```
-src/                     React frontend (the island itself)
+src/                     React frontend (the island and the settings window)
   island/                pill, hover card, panel, transport, progress, shortcuts
-  hooks/                 media, level and settings events; pointer bridge
+  settings/              settings window shell, nav and General/Appearance/About
+  hooks/                 media, level and settings events; pointer bridge; theme
   lib/                   layout constants, formatting, accent extraction
 src-tauri/src/
   main.rs                window creation and app wiring
+  settings_window.rs     on-demand 693x420 settings webview (focusable)
   window_setup.rs        native window flags, DWM tweaks, placement
   pointer.rs             cursor polling and click-through toggling
   media.rs               SMTC polling and transport commands
@@ -110,6 +114,7 @@ appearance:
   compactHeight: 40     # 28-64
   offsetX: 0            # window offset from the top-centre anchor (-200..200)
   offsetY: 0            # -10..200
+  theme: midnight       # midnight | graphite | ocean
 shortcuts:
   - id: downloads
     kind: folder
@@ -129,9 +134,27 @@ offset is written back to `appearance.offsetX` / `offsetY` and clamped to the
 ranges above so the hit-test canvas always stays on screen.
 
 Paths may use `%VAR%` environment expansion. Folder shortcuts are disabled and
-drawn in red while their target is missing. Edits to `shortcuts` or
-`lastPanelTab` are picked up on the next start; switching tabs in the panel and
-toggling the visualizer write the file immediately.
+drawn in red while their target is missing. The YAML file is read once at
+startup, so hand edits — including `shortcuts` and `lastPanelTab` — only take
+effect after a restart. Changes made from the UI (switching the panel tab,
+toggling the visualizer, the theme, the pill size and the position) are written
+back immediately and need no restart.
+
+### Settings window
+
+The gear icon in the panel footer opens a separate 693x420 window with three
+sections: General (visualizer switch, media source note), Appearance (theme,
+pill size with a live preview, reset position) and About (version, reveal
+`settings.yaml`, license, quit). The window is a normal focusable desktop
+window: it appears in the taskbar, takes keyboard focus and is closed with
+Escape or the header button. Unlike the island it is not click-through and not
+topmost, and it is created on first use and destroyed on close. Creating the
+second webview makes Windows stop compositing the island briefly, so the first
+open reloads the island; the cached media snapshot is restored immediately.
+
+`appearance.theme` selects one of three dark palettes: `midnight` (the default),
+`graphite` and `ocean`. Unknown values fall back to `midnight`, and a file
+written before the field existed loads unchanged.
 
 - Window shell surfaces (Start menu, notification centre, Task View, UAC) are
   drawn above any topmost window, so the island hides behind them.
