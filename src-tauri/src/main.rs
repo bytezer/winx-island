@@ -13,7 +13,7 @@ mod window_setup;
 use std::sync::Arc;
 use std::time::Duration;
 
-use tauri::{WebviewUrl, WebviewWindowBuilder};
+use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 
 use logger::logline;
 
@@ -21,9 +21,13 @@ fn main() {
     logger::init();
     std::panic::set_hook(Box::new(|info| logger::log(format!("panic: {info}"))));
 
+    let binary = std::env::current_exe()
+        .map(|path| path.display().to_string())
+        .unwrap_or_else(|_| "unknown".to_string());
+    logline!("starting binary {binary}");
+
     let pointer_state = Arc::new(pointer::PointerState::default());
     let (media_controller, media_receiver) = media::channel();
-    let app_settings = settings::Settings::load();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|_app, _argv, _cwd| {
@@ -31,7 +35,6 @@ fn main() {
         }))
         .manage(pointer_state.clone())
         .manage(media_controller)
-        .manage(app_settings.clone())
         .invoke_handler(tauri::generate_handler![
             commands::set_interactive_rect,
             commands::media_control,
@@ -43,6 +46,10 @@ fn main() {
             commands::quit_app,
         ])
         .setup(move |app| {
+            // Loaded after the single-instance plugin acquired its lock, so a
+            // second launch can never touch the settings file.
+            let app_settings = settings::Settings::load();
+            app.manage(app_settings.clone());
             logline!("creating island window");
 
             let start_view = std::env::var("WINX_START_VIEW").unwrap_or_default();
@@ -95,7 +102,7 @@ fn main() {
 
             let app_handle = app.handle().clone();
             media::spawn(app_handle.clone(), media_receiver);
-            audio::spawn(app_handle.clone(), app_settings.clone());
+            audio::spawn(app_handle.clone(), app_settings);
             focus::spawn(app_handle);
             pointer::spawn(app.handle().clone(), pointer_state.clone());
 

@@ -117,7 +117,7 @@ const SETTINGS_HEADER: &str = r#"# winx-island settings
 # - "ui.lastPanelTab" is one of: media, shortcuts.
 # - "visualizer.enabled" drives the peak meter bars.
 
-#"#;
+"#;
 
 
 impl Settings {
@@ -139,11 +139,23 @@ impl Settings {
 
         let file = match candidates {
             Some(file) => {
-                logline!("settings loaded from {}", path.display());
+                logline!(
+                    "settings loaded from {} ({} shortcut(s))",
+                    path.display(),
+                    file.shortcuts.len()
+                );
                 file
             }
             None => {
-                logline!("no settings file, using defaults");
+                // The file is either absent or unparsable; keep the raw bytes
+                // around as a backup when it exists.
+                if let Ok(raw) = fs::read_to_string(&path) {
+                    let backup = path.with_extension("yaml.broken");
+                    let _ = fs::write(&backup, &raw);
+                    logline!("invalid settings file kept as {}", backup.display());
+                } else {
+                    logline!("no settings file, writing defaults");
+                }
                 Self::write(&path, &SettingsFile::defaults());
                 SettingsFile::defaults()
             }
@@ -229,12 +241,34 @@ impl Settings {
     fn write(path: &PathBuf, file: &SettingsFile) {
         match serde_yaml::to_string(file) {
             Ok(document) => {
+                logline!(
+                    "writing settings ({} shortcuts, visualizer {}, tab '{}')",
+                    file.shortcuts.len(),
+                    file.visualizer.enabled,
+                    file.ui.last_panel_tab
+                );
                 if let Some(parent) = path.parent() {
                     let _ = fs::create_dir_all(parent);
                 }
                 let text = format!("{SETTINGS_HEADER}{document}");
-                if let Err(error) = fs::write(path, text) {
-                    logline!("failed to save settings: {error}");
+                // Atomic-ish: a concurrent read can never see a half-written
+                // document, which used to parse as two YAML documents.
+                let scratch = path.with_extension("yaml.tmp");
+                if fs::write(&scratch, &text).is_ok() {
+                    match fs::rename(&scratch, path) {
+                        Ok(()) => {}
+                        Err(_) => {
+                            let _ = fs::remove_file(path);
+                            if let Err(error) = fs::rename(&scratch, path) {
+                                logline!("failed to save settings: {error}");
+                            }
+                        }
+                    }
+                } else {
+                    logline!("failed to write settings scratch file");
+                    if let Err(error) = fs::write(path, text) {
+                        logline!("failed to save settings: {error}");
+                    }
                 }
             }
             Err(error) => logline!("failed to serialize settings: {error}"),
