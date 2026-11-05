@@ -54,6 +54,9 @@ fn main() {
 
             let start_view = std::env::var("WINX_START_VIEW").unwrap_or_default();
             let start_tab = std::env::var("WINX_START_TAB").unwrap_or_default();
+            if !start_view.is_empty() || !start_tab.is_empty() {
+                logline!("debug override active: view='{start_view}' tab='{start_tab}'");
+            }
             let init_script = format!(
                 "window.__winxStartView = {}; window.__winxStartTab = {};",
                 serde_json::to_string(&start_view).unwrap_or_else(|_| "\"\"".to_string()),
