@@ -1,11 +1,17 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useState } from "react";
-import type { PanelTab, SettingsState } from "../types";
+import type { PanelTab, SettingsState, Theme } from "../types";
 
 const DEFAULTS: SettingsState = {
   visualizerEnabled: true,
-  appearance: { compactWidth: 132, compactHeight: 40, offsetX: 0, offsetY: 0 },
+  appearance: {
+    compactWidth: 132,
+    compactHeight: 40,
+    offsetX: 0,
+    offsetY: 0,
+    theme: "midnight",
+  },
   lastPanelTab: "media",
   shortcuts: [],
 };
@@ -42,6 +48,30 @@ export async function changeVisualizer(enabled: boolean) {
 
 export async function changePanelTab(tab: PanelTab) {
   await invoke("set_panel_tab", { tab });
+}
+
+export async function changeTheme(theme: Theme) {
+  await invoke("set_theme", { theme });
+}
+
+export async function changeCompactSize(width: number, height: number) {
+  await invoke("set_compact_size", { width, height });
+}
+
+export async function resetPosition() {
+  await invoke("reset_position");
+}
+
+export async function openSettings() {
+  await invoke("open_settings");
+}
+
+export async function closeSettings() {
+  await invoke("close_settings");
+}
+
+export async function fetchAppVersion(): Promise<string> {
+  return invoke<string>("app_version");
 }
 
 export async function launchShortcut(id: string) {

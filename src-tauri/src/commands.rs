@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::media::{Command, Controller};
 use crate::pointer::{PointerState, Rect};
@@ -52,6 +52,61 @@ pub fn set_visualizer_enabled(enabled: bool, settings: State<'_, Arc<Settings>>,
 pub fn set_panel_tab(tab: String, settings: State<'_, Arc<Settings>>, app: AppHandle) {
     settings.set_last_panel_tab(&tab);
     let _ = app.emit("island://settings", settings.view());
+}
+
+#[tauri::command]
+pub fn set_theme(
+    theme: String,
+    settings: State<'_, Arc<Settings>>,
+    app: AppHandle,
+) -> Result<(), String> {
+    if !crate::settings::is_valid_theme(&theme) {
+        return Err(format!("unknown theme '{theme}'"));
+    }
+    settings.set_theme(&theme);
+    let _ = app.emit("island://settings", settings.view());
+    Ok(())
+}
+
+#[tauri::command]
+pub fn set_compact_size(
+    width: i32,
+    height: i32,
+    settings: State<'_, Arc<Settings>>,
+    app: AppHandle,
+) {
+    settings.set_compact_size(width, height);
+    let _ = app.emit("island://settings", settings.view());
+}
+
+#[tauri::command]
+pub async fn reset_position(
+    app: AppHandle,
+    settings: State<'_, Arc<Settings>>,
+) -> Result<(), String> {
+    settings.set_offset(0, 0);
+    if let Some(window) = app.get_webview_window("island") {
+        crate::window_setup::place(&window, 0.0, 0.0);
+    }
+    let _ = app.emit("island://settings", settings.view());
+    Ok(())
+}
+
+// These touch the window manager. Commands without `async` run on the main
+// thread, where creating or closing a webview would deadlock the event loop.
+#[tauri::command]
+pub async fn open_settings(app: AppHandle) -> Result<(), String> {
+    crate::settings_window::open(&app)
+}
+
+#[tauri::command]
+pub async fn close_settings(app: AppHandle) -> Result<(), String> {
+    crate::settings_window::close(&app)
+}
+
+#[tauri::command]
+pub fn app_version() -> String {
+    env!("CARGO_PKG_VERSION").to_string()
 }
 
 #[tauri::command]

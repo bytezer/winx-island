@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { layoutFor } from "./lib/layout";
 import { extractAccent } from "./lib/accent";
 import { formatClock } from "./lib/format";
 import { useSettings } from "./hooks/useSettings";
+import { useTheme } from "./hooks/useTheme";
 import { sendMediaAction, seekTo, useMedia, usePlayhead } from "./hooks/useMedia";
 import { useInteractiveRect, usePointerInside } from "./hooks/usePointer";
 import type { PanelTab, View } from "./types";
@@ -30,6 +31,7 @@ const forcedPanelTab: PanelTab | undefined = (() => {
 export default function App() {
   const { media, receivedAt } = useMedia();
   const { visualizerEnabled, appearance, lastPanelTab, shortcuts } = useSettings();
+  useTheme(appearance.theme);
   const inside = usePointerInside();
   const [view, setView] = useState<View>(forcedView ?? "compact");
   const [accent, setAccent] = useState<string | null>(null);
@@ -97,6 +99,12 @@ export default function App() {
   const box = layout[view];
   const clock = useMemo(() => formatClock(now), [now]);
 
+  // Only override the theme accent while artwork provides one; without art the
+  // theme's own accent applies.
+  const accentStyle = accent
+    ? ({ ["--accent" as string]: accent } as CSSProperties)
+    : undefined;
+
   return (
     <div className="canvas">
       <div
@@ -106,8 +114,7 @@ export default function App() {
           width: box.width,
           height: box.height,
           borderRadius: box.radius,
-          // Exposed to CSS so the tint follows the artwork.
-          ["--accent" as string]: accent ?? "#8a8f98",
+          ...accentStyle,
         }}
         onClick={togglePanel}
         onPointerDown={(event) => {

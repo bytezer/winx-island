@@ -16,6 +16,14 @@ use crate::shortcuts;
 pub const PANEL_TAB_MEDIA: &str = "media";
 pub const PANEL_TAB_SHORTCUTS: &str = "shortcuts";
 
+/// Dark colour themes supported by the overlay and the settings window.
+pub const THEMES: [&str; 3] = ["midnight", "graphite", "ocean"];
+pub const DEFAULT_THEME: &str = "midnight";
+
+pub fn is_valid_theme(theme: &str) -> bool {
+    THEMES.contains(&theme)
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct VisualizerSettings {
@@ -64,6 +72,8 @@ pub struct AppearanceSettings {
     pub offset_x: i32,
     #[serde(deserialize_with = "de_number")]
     pub offset_y: i32,
+    /// Name of the active dark theme; see `THEMES`.
+    pub theme: String,
 }
 
 impl Default for AppearanceSettings {
@@ -73,6 +83,7 @@ impl Default for AppearanceSettings {
             compact_height: 40,
             offset_x: 0,
             offset_y: 0,
+            theme: DEFAULT_THEME.to_string(),
         }
     }
 }
@@ -85,6 +96,11 @@ impl AppearanceSettings {
             compact_height: self.compact_height.clamp(28, 64),
             offset_x: self.offset_x.clamp(-200, 200),
             offset_y: self.offset_y.clamp(-10, 200),
+            theme: if is_valid_theme(&self.theme) {
+                self.theme.clone()
+            } else {
+                DEFAULT_THEME.to_string()
+            },
         }
     }
 }
@@ -169,6 +185,7 @@ const SETTINGS_HEADER: &str = r#"# winx-island settings
 # - "appearance.compactWidth" / "compactHeight" size the collapsed pill.
 # - "appearance.offsetX" / "offsetY" move the window from the top-centre
 #   anchor; right-drag the island to set them by hand.
+# - "appearance.theme" is one of: midnight, graphite, ocean.
 
 "#;
 
@@ -291,6 +308,26 @@ impl Settings {
             .clamped();
             file.appearance.offset_x = clamped.offset_x;
             file.appearance.offset_y = clamped.offset_y;
+        });
+    }
+
+    pub fn set_theme(&self, theme: &str) {
+        if !is_valid_theme(theme) {
+            return;
+        }
+        self.update(|file| file.appearance.theme = theme.to_string());
+    }
+
+    pub fn set_compact_size(&self, width: i32, height: i32) {
+        self.update(|file| {
+            let clamped = AppearanceSettings {
+                compact_width: width,
+                compact_height: height,
+                ..file.appearance.clone()
+            }
+            .clamped();
+            file.appearance.compact_width = clamped.compact_width;
+            file.appearance.compact_height = clamped.compact_height;
         });
     }
 

@@ -8,6 +8,7 @@ mod logger;
 mod media;
 mod pointer;
 mod settings;
+mod settings_window;
 mod shortcuts;
 mod window_setup;
 
@@ -42,6 +43,12 @@ fn main() {
             commands::get_settings,
             commands::set_visualizer_enabled,
             commands::set_panel_tab,
+            commands::set_theme,
+            commands::set_compact_size,
+            commands::reset_position,
+            commands::open_settings,
+            commands::close_settings,
+            commands::app_version,
             commands::open_shortcut,
             commands::open_settings_location,
             commands::begin_drag,

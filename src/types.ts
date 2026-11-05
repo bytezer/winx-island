@@ -23,6 +23,8 @@ export type View = "compact" | "hover" | "panel";
 
 export type PanelTab = "media" | "shortcuts";
 
+export type Theme = "midnight" | "graphite" | "ocean";
+
 export interface Shortcut {
   id: string;
   kind: "folder" | "action";
@@ -36,6 +38,7 @@ export interface Appearance {
   compactHeight: number;
   offsetX: number;
   offsetY: number;
+  theme: Theme;
 }
 
 export interface SettingsState {

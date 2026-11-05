@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { MediaAction, MediaSnapshot, PanelTab, Shortcut } from "../types";
-import { changePanelTab, changeVisualizer, revealSettings } from "../hooks/useSettings";
+import { changePanelTab, changeVisualizer, openSettings } from "../hooks/useSettings";
 import { SettingsIcon } from "./icons";
 import { CoverArt } from "./CoverArt";
 import { MiniVisualizer } from "./MiniVisualizer";
@@ -154,11 +154,11 @@ export function Panel({
           <button
             type="button"
             className="ghost-button icon-only"
-            aria-label="Open the settings file in Explorer"
-            title="Open the settings file in Explorer"
+            aria-label="Open settings"
+            title="Open settings"
             onClick={(event) => {
               event.stopPropagation();
-              void revealSettings();
+              void openSettings();
             }}
           >
             <SettingsIcon size={14} />
