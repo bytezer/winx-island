@@ -67,8 +67,17 @@ WSLENV=WINX_START_VIEW WINX_START_VIEW=panel ./winx-island.exe
 ```
 
 Logs are written to `%TEMP%\winx-island.log` because the binary is a GUI
-subsystem executable and has no console. `scripts/` contains helpers used
-during development: launching, screenshots, window probing and input tests.
+subsystem executable and has no console.
+
+### Helper scripts
+
+| Script | Purpose |
+|---|---|
+| `scripts/run.sh` | Restarts the Windows build from WSL and prints the log tail |
+| `scripts/screenshot.ps1` | Captures a screen region to a PNG |
+| `scripts/list-windows.ps1` | Lists the app's top level windows with their extended styles |
+| `scripts/drag-test.ps1` | Simulates a right-button drag to check repositioning |
+| `scripts/make_icons.py` | Regenerates `src-tauri/icons` without extra dependencies |
 
 ## Layout
 

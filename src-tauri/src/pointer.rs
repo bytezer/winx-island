@@ -31,7 +31,6 @@ impl Default for Rect {
 
 pub struct PointerState {
     pub rect: Mutex<Rect>,
-    pub inside: AtomicBool,
     /// Set while a right-button drag is in progress: click-through stays off.
     pub dragging: AtomicBool,
 }
@@ -40,7 +39,6 @@ impl Default for PointerState {
     fn default() -> Self {
         Self {
             rect: Mutex::new(Rect::default()),
-            inside: AtomicBool::new(false),
             dragging: AtomicBool::new(false),
         }
     }
@@ -105,7 +103,6 @@ pub fn spawn(app: AppHandle, state: Arc<PointerState>) {
                 continue;
             }
             last = Some(hit.inside);
-            state.inside.store(hit.inside, Ordering::Relaxed);
 
             let _ = window.set_ignore_cursor_events(!hit.inside);
             if let Some(hwnd) = crate::window_setup::hwnd_of(&window) {

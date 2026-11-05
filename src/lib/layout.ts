@@ -2,7 +2,6 @@ import type { Appearance, View } from "../types";
 
 /** Size of the transparent window. Everything the island needs must fit here. */
 export const CANVAS_WIDTH = 560;
-export const CANVAS_HEIGHT = 380;
 export const CANVAS_TOP_PADDING = 10;
 
 export interface IslandBox {

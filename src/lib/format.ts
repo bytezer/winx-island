@@ -13,16 +13,3 @@ export function formatDuration(ms: number): string {
 export function formatClock(date: Date): string {
   return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 }
-
-/** Turns an app user model id into something readable: "SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify" -> "Spotify". */
-export function readableSourceApp(id: string): string {
-  if (!id) return "";
-  const bare = id.split("!")[0] ?? "";
-  // Sessions coming from unpackaged players often report a raw GUID, which is
-  // meaningless to a human, so only package style ids are rendered.
-  if (!bare.includes(".")) return "";
-  const first = bare.split(".")[0] ?? "";
-  const cleaned = first.split("_")[0] ?? "";
-  const pretty = cleaned.replace(/([a-z])([A-Z])/g, "$1 $2").trim();
-  return pretty.length >= 2 && pretty.length <= 24 ? pretty : "";
-}
