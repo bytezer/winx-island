@@ -234,6 +234,7 @@ body {
 
 .waveform.is-peak span {
   animation: none;
+  transform: none;
   opacity: 0.95;
   transition: height 90ms linear;
 }
@@ -419,21 +420,49 @@ body {
   height: 34px;
 }
 
-/* --------------------------------------------------------- mini visualizer -- */
+/* --------------------------------------------------------------- spectrum -- */
 
-.mini-visualizer {
+.spectrum {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 3px;
   height: 20px;
   flex: none;
 }
 
-.mini-visualizer span {
+.spectrum.is-panel {
+  gap: 2px;
+  height: 26px;
+}
+
+.spectrum-band {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  width: 3px;
+  height: 100%;
+}
+
+.spectrum-bar {
   width: 3px;
   border-radius: 2px;
   background: linear-gradient(180deg, #ffffff, var(--accent));
   transition: height 90ms linear;
+}
+
+.spectrum-peak {
+  position: absolute;
+  left: 0;
+  width: 3px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--accent);
+  opacity: 0.9;
+  transition: bottom 90ms linear;
+}
+
+.spectrum:not(.is-playing) .spectrum-band {
+  opacity: 0.45;
 }
 
 .hover-bottom {
@@ -606,7 +635,7 @@ body {
   position: relative;
 }
 
-.panel-transport .mini-visualizer {
+.panel-transport .spectrum {
   position: absolute;
   right: 0;
   top: 50%;

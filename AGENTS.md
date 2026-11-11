@@ -82,6 +82,13 @@ Prerequisites (once): `rustup target add x86_64-pc-windows-msvc`,
   WinRT from Tauri commands directly. The controller also caches the latest
   snapshot; `get_media_snapshot` and `useMedia` use it to restore media after
   the island reload without waiting for a change event.
+- The visualizer spectrum is WASAPI loopback on the default render endpoint
+  (`src-tauri/src/audio/capture.rs`), analysed by an in-repo radix-2 FFT
+  (`src-tauri/src/audio/spectrum.rs`). The audio thread owns the capture and
+  analyzer, re-resolves the device periodically and emits 24 bands on
+  `island://spectrum` only while the island is visible and
+  `visualizer.enabled` is on; views aggregate those 24 bands themselves
+  (`useSpectrum`). Do not add an FFT dependency or a per-view IPC command.
 - Settings live in `%APPDATA%\winx-island\settings.yaml`, are loaded once at
   startup into `Settings`, and are written only when a value changes
   (visualizer toggle, panel tab, theme, pill size, drag offsets, reset). Hand

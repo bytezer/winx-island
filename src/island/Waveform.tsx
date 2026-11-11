@@ -1,34 +1,33 @@
-import { useLevel } from "../hooks/useLevel";
-
-const ENVELOPE = [0.55, 1, 0.7, 0.95];
+import { useSpectrum } from "../hooks/useSpectrum";
 
 interface WaveformProps {
   playing: boolean;
   visualizer: boolean;
-  bars?: number;
+}
+
+const BARS = 4;
+
+/** Live bars are measured from the baseline in px. */
+function heightFor(value: number): number {
+  return Math.max(2, 2 + 16 * Math.pow(value, 0.7));
 }
 
 /**
- * The compact pill indicator. Peak-meter driven while playing with the
- * visualizer on; falls back to the procedural wave otherwise.
+ * The compact pill indicator. Spectrum driven while playing with the visualizer
+ * on; falls back to the procedural wave otherwise.
  */
-export function Waveform({ playing, visualizer, bars = 4 }: WaveformProps) {
-  const level = useLevel();
-  const peak = visualizer && playing;
+export function Waveform({ playing, visualizer }: WaveformProps) {
+  const { values } = useSpectrum(BARS);
+  const live = visualizer && playing;
 
   return (
-    <div className={`waveform ${playing ? "is-playing" : ""} ${peak ? "is-peak" : ""}`} aria-hidden="true">
-      {Array.from({ length: bars }).map((_, index) => {
-        const style = peak
-          ? { height: `${2 + 16 * ENVELOPE[index % ENVELOPE.length] * Math.pow(level, 0.7)}px` }
-          : undefined;
-        return (
-          <span
-            key={index}
-            style={style}
-          />
-        );
-      })}
+    <div className={`waveform ${playing ? "is-playing" : ""} ${live ? "is-peak" : ""}`} aria-hidden="true">
+      {Array.from({ length: BARS }).map((_, index) => (
+        <span
+          key={index}
+          style={live ? { height: `${heightFor(values[index] ?? 0)}px` } : undefined}
+        />
+      ))}
     </div>
   );
 }

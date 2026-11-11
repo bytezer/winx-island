@@ -1,7 +1,7 @@
 import type { MediaSnapshot } from "../types";
 import { CoverArt } from "./CoverArt";
 import { ProgressBar } from "./ProgressBar";
-import { MiniVisualizer } from "./MiniVisualizer";
+import { Spectrum } from "./Spectrum";
 import { Transport } from "./Transport";
 
 interface HoverCardProps {
@@ -35,7 +35,7 @@ export function HoverCard({ media, positionMs, visualizer, onAction, onSeek }: H
           showTimes={media.durationMs > 0}
           onSeek={onSeek}
         />
-        <MiniVisualizer visualizer={visualizer} playing={media.playing} />
+        <Spectrum bars={12} visualizer={visualizer} playing={media.playing} />
       </div>
     </div>
   );

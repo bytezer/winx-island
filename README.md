@@ -16,8 +16,9 @@ and ignores clicks outside the visible pill.
 - Media data read from the Windows Global System Media Transport Controls
   (SMTC), so it works with Spotify, browsers, VLC and any other well-behaved
   player.
-- Peak meter visualizer driven by the output device (IAudioMeterInformation),
-  togglable from the panel footer.
+- 24-band spectrum visualizer captured from the default output device with
+  WASAPI loopback and analysed by an in-repo radix-2 FFT: 4 bands in the pill,
+  12 in the hover card and 24 in the panel, togglable from the panel footer.
 - Shortcut tab: open personal folders and built-in system actions (recycle bin,
   Windows settings, suspend).
 - Configurable pill size and window position, either in settings.yaml or by
@@ -87,7 +88,7 @@ subsystem executable and has no console.
 src/                     React frontend (the island and the settings window)
   island/                pill, hover card, panel, transport, progress, shortcuts
   settings/              settings window shell, nav and General/Appearance/About
-  hooks/                 media, level and settings events; pointer bridge; theme
+  hooks/                 media, spectrum and settings events; pointer bridge; theme
   lib/                   layout constants, formatting, accent extraction
 src-tauri/src/
   main.rs                window creation and app wiring
@@ -95,7 +96,7 @@ src-tauri/src/
   window_setup.rs        native window flags, DWM tweaks, placement
   pointer.rs             cursor polling and click-through toggling
   media.rs               SMTC polling and transport commands
-  audio.rs               output peak meter for the visualizer
+  audio/                 WASAPI loopback capture, FFT and band analysis
   settings.rs            %APPDATA%\winx-island\settings.yaml
   shortcuts.rs           default shortcuts, path expansion, open actions
   focus.rs               fullscreen detection

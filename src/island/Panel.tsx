@@ -3,8 +3,8 @@ import type { MediaAction, MediaSnapshot, PanelTab, Shortcut } from "../types";
 import { changePanelTab, changeVisualizer, openSettings } from "../hooks/useSettings";
 import { SettingsIcon } from "./icons";
 import { CoverArt } from "./CoverArt";
-import { MiniVisualizer } from "./MiniVisualizer";
 import { ProgressBar } from "./ProgressBar";
+import { Spectrum } from "./Spectrum";
 import { ShortcutTile } from "./ShortcutTile";
 import { Transport } from "./Transport";
 
@@ -55,7 +55,7 @@ function MediaPanel({ media, positionMs, visualizer, onAction, onSeek }: PanelVi
 
       <div className="panel-transport">
         <Transport media={media} large onAction={onAction} />
-        <MiniVisualizer visualizer={visualizer} playing={media.playing} />
+        <Spectrum bars={24} panel visualizer={visualizer} playing={media.playing} />
       </div>
     </div>
   );

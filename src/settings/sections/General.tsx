@@ -17,7 +17,8 @@ export function General({ visualizerEnabled }: GeneralProps) {
           <div className="settings-row-text">
             <span className="settings-row-title">Visualizer</span>
             <span className="settings-row-hint">
-              Show the peak meter bars next to the transport controls while something is playing.
+              Show a live 24-band spectrum next to the transport controls, captured from the
+              default output device while something is playing.
             </span>
           </div>
           <button
