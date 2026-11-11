@@ -1,6 +1,9 @@
+import { MusicLibraryControls } from "./MusicLibraryControls";
+import { useLevel } from "../hooks/useLevel";
+import { AUDIO_NOISE_FLOOR } from "../lib/visualizer";
 import { invoke } from "@tauri-apps/api/core";
-import type { MediaAction, MediaSnapshot, PanelTab, Shortcut } from "../types";
-import { changePanelTab, changeVisualizer, revealSettings } from "../hooks/useSettings";
+import type { MediaAction, MediaSnapshot, MusicLibraryActions, PanelTab, Shortcut } from "../types";
+import { changePanelTab, changeVisualizer, openAppearanceEditor } from "../hooks/useSettings";
 import { SettingsIcon } from "./icons";
 import { CoverArt } from "./CoverArt";
 import { MiniVisualizer } from "./MiniVisualizer";
@@ -10,6 +13,7 @@ import { Transport } from "./Transport";
 
 interface PanelProps {
   media: MediaSnapshot;
+  library: MusicLibraryActions;
   positionMs: number;
   panelTab: PanelTab;
   shortcuts: Shortcut[];
@@ -21,13 +25,15 @@ interface PanelProps {
 
 interface PanelViewProps {
   media: MediaSnapshot;
+  library: MusicLibraryActions;
   positionMs: number;
   visualizer: boolean;
   onAction: (action: MediaAction) => void;
   onSeek: (positionMs: number) => void;
 }
 
-function MediaPanel({ media, positionMs, visualizer, onAction, onSeek }: PanelViewProps) {
+function MediaPanel({ media, library, positionMs, visualizer, onAction, onSeek }: PanelViewProps) {
+  const systemAudio = useLevel() > AUDIO_NOISE_FLOOR && visualizer;
   return (
     <div className="panel-media">
       <div className="panel-header">
@@ -35,15 +41,16 @@ function MediaPanel({ media, positionMs, visualizer, onAction, onSeek }: PanelVi
         <div className="meta">
           <div className="badge-row">
             <div className="badge">
-              <span className={`badge-dot ${media.playing ? "is-live" : ""}`} />
-              {media.available ? (media.playing ? "Playing" : "Paused") : "Idle"}
+              <span className={`badge-dot ${media.playing || systemAudio ? "is-live" : ""}`} />
+              {media.available ? (media.playing ? "Playing" : "Paused") : systemAudio ? "System audio" : "Idle"}
             </div>
           </div>
-          <div className="panel-title">{media.available ? media.title || "Unknown track" : "Nothing playing"}</div>
-          <div className="meta-sub">{media.available ? media.artist || "Unknown artist" : "Open any player to begin"}</div>
-          {media.album && <div className="meta-album">{media.album}</div>}
+          <div className="panel-title">{media.available ? media.title || "Unknown track" : systemAudio ? "System audio" : "Your music, right here"}</div>
+          <div className="meta-sub">{media.available ? media.artist || "Unknown artist" : systemAudio ? "Visualizing Windows output" : "Choose music from your PC"}</div>
         </div>
       </div>
+
+      <MusicLibraryControls media={media} library={library} />
 
       <ProgressBar
         positionMs={positionMs}
@@ -54,7 +61,7 @@ function MediaPanel({ media, positionMs, visualizer, onAction, onSeek }: PanelVi
       />
 
       <div className="panel-transport">
-        <Transport media={media} large onAction={onAction} />
+        <Transport media={media} busy={library.busy} large onAction={onAction} />
         <MiniVisualizer visualizer={visualizer} playing={media.playing} />
       </div>
     </div>
@@ -91,6 +98,7 @@ function ShortcutsPanel({ shortcuts }: ShortcutsPanelProps) {
 
 export function Panel({
   media,
+  library,
   positionMs,
   panelTab,
   shortcuts,
@@ -139,6 +147,7 @@ export function Panel({
       {panelTab === "media" ? (
         <MediaPanel
           media={media}
+          library={library}
           positionMs={positionMs}
           visualizer={visualizer}
           onAction={onAction}
@@ -154,11 +163,11 @@ export function Panel({
           <button
             type="button"
             className="ghost-button icon-only"
-            aria-label="Open the settings file in Explorer"
-            title="Open the settings file in Explorer"
+            aria-label="Personalizar apariencia"
+            title="Personalizar apariencia"
             onClick={(event) => {
               event.stopPropagation();
-              void revealSettings();
+              void openAppearanceEditor();
             }}
           >
             <SettingsIcon size={14} />

@@ -1,23 +1,60 @@
 import { listen } from "@tauri-apps/api/event";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
-/**
- * Smoothed output peak pushed by the native peak meter. Events are gated on
- * the settings switch, so an absent emitter falls back to zero.
- */
-export function useLevel(): number {
-  const [level, setLevel] = useState(0);
+interface AudioSnapshot {
+  level: number;
+  bands: number[];
+}
 
-  useEffect(() => {
-    let disposed = false;
-    const unsubscribe = listen<{ level: number }>("island://level", (event) => {
-      if (!disposed) setLevel(event.payload.level);
+const EMPTY: AudioSnapshot = { level: 0, bands: Array(7).fill(0) };
+let snapshot = EMPTY;
+let disconnect: (() => void) | undefined;
+const subscribers = new Set<() => void>();
+
+function bounded(value: unknown): number {
+  return typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : 0;
+}
+
+function subscribe(onChange: () => void) {
+  subscribers.add(onChange);
+  if (subscribers.size === 1) {
+    let active = true;
+    const subscription = listen<{ level: number; bands: number[] }>("island://level", (event) => {
+      if (!active) return;
+      snapshot = {
+        level: bounded(event.payload.level),
+        bands: Array.from({ length: 7 }, (_, index) => bounded(event.payload.bands?.[index])),
+      };
+      subscribers.forEach((notify) => notify());
     });
-    return () => {
-      disposed = true;
-      void unsubscribe.then((off) => off());
+    disconnect = () => {
+      active = false;
+      void subscription.then((off) => off()).catch(() => {});
     };
-  }, []);
+    void subscription.catch(() => {});
+  }
+  return () => {
+    subscribers.delete(onChange);
+    if (subscribers.size === 0) {
+      disconnect?.();
+      disconnect = undefined;
+      snapshot = EMPTY;
+    }
+  };
+}
 
-  return level;
+function getLevel() {
+  return snapshot.level;
+}
+
+function getBands() {
+  return snapshot.bands;
+}
+
+export function useLevel(): number {
+  return useSyncExternalStore(subscribe, getLevel, getLevel);
+}
+
+export function useSpectrum(): number[] {
+  return useSyncExternalStore(subscribe, getBands, getBands);
 }

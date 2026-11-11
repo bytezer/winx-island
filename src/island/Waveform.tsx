@@ -1,6 +1,9 @@
-import { useLevel } from "../hooks/useLevel";
-
-const ENVELOPE = [0.55, 1, 0.7, 0.95];
+import { useSpectrum } from "../hooks/useLevel";
+import { useTheme } from "../hooks/useTheme";
+import { useSpectrumCanvas } from "../hooks/useSpectrumAnimation";
+import { DEFAULT_THEME } from "../lib/theme";
+import { SPECTRUM_HEIGHT } from "../lib/spectrum-renderer";
+import type { ThemeSettings } from "../types";
 
 interface WaveformProps {
   playing: boolean;
@@ -8,27 +11,23 @@ interface WaveformProps {
   bars?: number;
 }
 
-/**
- * The compact pill indicator. Peak-meter driven while playing with the
- * visualizer on; falls back to the procedural wave otherwise.
- */
-export function Waveform({ playing, visualizer, bars = 4 }: WaveformProps) {
-  const level = useLevel();
-  const peak = visualizer && playing;
+interface SpectrumBarsProps extends WaveformProps {
+  bands: readonly number[];
+  theme?: ThemeSettings;
+}
 
+export function SpectrumBars({ bands, playing, visualizer, bars = 7, theme = DEFAULT_THEME }: SpectrumBarsProps) {
+  const canvas = useSpectrumCanvas(bands, theme, playing, visualizer, bars);
+  const width = bars * 4 + Math.max(0, bars - 1) * 2;
   return (
-    <div className={`waveform ${playing ? "is-playing" : ""} ${peak ? "is-peak" : ""}`} aria-hidden="true">
-      {Array.from({ length: bars }).map((_, index) => {
-        const style = peak
-          ? { height: `${2 + 16 * ENVELOPE[index % ENVELOPE.length] * Math.pow(level, 0.7)}px` }
-          : undefined;
-        return (
-          <span
-            key={index}
-            style={style}
-          />
-        );
-      })}
+    <div className={`waveform ${playing ? "is-playing" : ""} ${visualizer ? "is-peak" : ""}`} data-style={theme.barStyle} aria-hidden="true" style={{ width }}>
+      <canvas ref={canvas} width={width} height={SPECTRUM_HEIGHT} />
     </div>
   );
+}
+
+export function Waveform(props: WaveformProps) {
+  const bands = useSpectrum();
+  const theme = useTheme();
+  return <SpectrumBars {...props} bands={bands} theme={theme} />;
 }

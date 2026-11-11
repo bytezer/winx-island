@@ -1,3 +1,5 @@
+import { useLevel } from "../hooks/useLevel";
+import { AUDIO_NOISE_FLOOR } from "../lib/visualizer";
 import type { MediaSnapshot } from "../types";
 import { CoverArt } from "./CoverArt";
 import { Waveform } from "./Waveform";
@@ -9,7 +11,10 @@ interface CompactPillProps {
 }
 
 export function CompactPill({ media, clock, visualizer }: CompactPillProps) {
-  if (!media.available) {
+  const level = useLevel();
+  const systemAudio = visualizer && level > AUDIO_NOISE_FLOOR;
+
+  if (!media.available && !systemAudio) {
     return (
       <div className="compact compact-idle">
         <span className="idle-dot" />

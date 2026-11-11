@@ -3,7 +3,6 @@ use std::hash::{Hash, Hasher};
 
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
-use serde::Serialize;
 use tauri::{AppHandle, Emitter};
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 use tokio::time::{sleep, Duration};
@@ -20,45 +19,15 @@ use crate::logger::logline;
 const POLL_INTERVAL: Duration = Duration::from_millis(700);
 const MAX_ART_BYTES: u32 = 8 * 1024 * 1024;
 
-#[derive(Clone, Default, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct MediaSnapshot {
-    pub available: bool,
-    pub title: String,
-    pub artist: String,
-    pub album: String,
-    pub playing: bool,
-    pub position_ms: i64,
-    pub duration_ms: i64,
-    pub can_next: bool,
-    pub can_prev: bool,
-    pub can_seek: bool,
-    pub art: Option<String>,
-    pub source_app: String,
-}
-
-impl MediaSnapshot {
-    /// Everything that should trigger a frontend update. The playhead is
-    /// excluded on purpose: it is interpolated on the UI side.
-    fn signature(&self) -> String {
-        format!(
-            "{}|{}|{}|{}|{}|{}|{}|{}|{}",
-            self.available,
-            self.playing,
-            self.title,
-            self.artist,
-            self.album,
-            self.duration_ms,
-            self.source_app,
-            self.can_next,
-            self.art.as_ref().map_or(0, |art| art.len())
-        )
-    }
-}
+pub use crate::media_snapshot::MediaSnapshot;
 
 pub enum Command {
     Transport(String),
     Seek(i64),
+    OpenFiles(Vec<String>),
+    AddFiles(Vec<String>),
+    UseSystem,
+    Refresh,
 }
 
 /// Handle owned by the IPC layer. WinRT objects are not `Send`, so every media
@@ -105,28 +74,73 @@ async fn poll_loop(app: AppHandle, receiver: &mut UnboundedReceiver<Command>) {
     let mut signature = String::new();
     let mut art_cache: Option<(u64, String)> = None;
     let mut last_error = String::new();
+    let mut local = match crate::local_player::LocalPlayer::new().await {
+        Ok(player) => Some(player),
+        Err(error) => {
+            logline!("local player unavailable: {error}");
+            None
+        }
+    };
+    let mut command_error: Option<String> = None;
 
     loop {
-        tokio::select! {
-            _ = sleep(POLL_INTERVAL) => {}
+        let command = tokio::select! {
+            _ = sleep(POLL_INTERVAL) => None,
             command = receiver.recv() => {
-                match command {
-                    Some(Command::Transport(action)) => {
-                        if let Err(error) = control(&action, 0).await {
-                            logline!("transport command failed: {error}");
-                        }
+                if command.is_none() { break; }
+                command
+            }
+        };
+        if let Some(command) = command {
+            let result = match command {
+                Command::OpenFiles(paths) => match local.as_mut() {
+                    Some(player) => player.open(paths).await.map_err(|error| error.to_string()),
+                    None => Err("The built-in player could not start. Restart winx-island and try again.".into()),
+                },
+                Command::AddFiles(paths) => match local.as_mut() {
+                    Some(player) => player.add(paths).await.map_err(|error| error.to_string()),
+                    None => Err("The built-in player could not start. Restart winx-island and try again.".into()),
+                },
+                Command::UseSystem => match local.as_mut() {
+                    Some(player) => player.use_system().map_err(|error| error.to_string()),
+                    None => Ok(()),
+                },
+                Command::Refresh => Ok(()),
+                Command::Transport(action) => {
+                    if let Some(player) = local.as_mut().filter(|player| player.active()) {
+                        player.control(&action, 0).await.map_err(|error| error.to_string())
+                    } else {
+                        control(&action, 0).await.map_err(|error| error.to_string())
                     }
-                    Some(Command::Seek(position_ms)) => {
-                        if let Err(error) = control("seek", position_ms).await {
-                            logline!("seek command failed: {error}");
-                        }
+                }
+                Command::Seek(position) => {
+                    if let Some(player) = local.as_mut().filter(|player| player.active()) {
+                        player.control("seek", position).await.map_err(|error| error.to_string())
+                    } else {
+                        control("seek", position).await.map_err(|error| error.to_string())
                     }
-                    None => {}
+                }
+            };
+            command_error = result.err();
+            if let Some(error) = command_error.as_ref() {
+                logline!("media command failed: {error}");
+                if let Some(player) = local.as_ref().filter(|player| player.active()) {
+                    player.set_error(error.clone());
                 }
             }
+            signature.clear();
         }
 
-        let snapshot = match query(&mut art_cache).await {
+        let local_active = local.as_ref().is_some_and(|player| player.active());
+        let result = if let Some(player) = local.as_mut().filter(|player| player.active()) {
+            if let Err(error) = player.tick().await {
+                player.set_error(error.to_string());
+            }
+            player.snapshot()
+        } else {
+            query(&mut art_cache).await
+        };
+        let mut snapshot = match result {
             Ok(snapshot) => snapshot,
             Err(error) => {
                 let message = error.to_string();
@@ -137,9 +151,11 @@ async fn poll_loop(app: AppHandle, receiver: &mut UnboundedReceiver<Command>) {
                 MediaSnapshot::default()
             }
         };
-
+        if command_error.is_some() {
+            snapshot.playback_error = command_error.clone();
+        }
         let next = snapshot.signature();
-        if next != signature {
+        if local_active || next != signature {
             signature = next;
             let _ = app.emit("island://media", &snapshot);
         }
@@ -225,6 +241,7 @@ async fn read_session(
             .SourceAppUserModelId()
             .map(|value| value.to_string())
             .unwrap_or_default(),
+        ..Default::default()
     };
 
     if let Ok(thumbnail) = properties.Thumbnail() {
