@@ -7,10 +7,12 @@ import { useSettings } from "./hooks/useSettings";
 import { useTheme } from "./hooks/useTheme";
 import { sendMediaAction, seekTo, useMedia, usePlayhead } from "./hooks/useMedia";
 import { useInteractiveRect, usePointerInside } from "./hooks/usePointer";
+import { useRipples } from "./hooks/useRipples";
 import type { PanelTab, View } from "./types";
 import { CompactPill } from "./island/CompactPill";
 import { HoverCard } from "./island/HoverCard";
 import { Panel } from "./island/Panel";
+import { RippleLayer } from "./island/RippleLayer";
 
 /**
  * Debug helper: WINX_START_VIEW=hover|panel freezes the island in that state so
@@ -33,6 +35,7 @@ export default function App() {
   const { visualizerEnabled, appearance, lastPanelTab, shortcuts } = useSettings();
   useTheme(appearance.theme);
   const inside = usePointerInside();
+  const { ripples, spawn, dismiss } = useRipples();
   const [view, setView] = useState<View>(forcedView ?? "compact");
   const [accent, setAccent] = useState<string | null>(null);
   const [now, setNow] = useState(() => new Date());
@@ -122,11 +125,14 @@ export default function App() {
           if (event.button === 2) {
             event.preventDefault();
             void invoke("begin_drag");
+            return;
           }
+          spawn(event);
         }}
         onContextMenu={(event) => event.preventDefault()}
       >
         <div className="glow" />
+        <RippleLayer ripples={ripples} onDismiss={dismiss} />
 
         <div className="layer" data-active={view === "compact"}>
           <CompactPill media={media} clock={clock} visualizer={visualizerEnabled} />

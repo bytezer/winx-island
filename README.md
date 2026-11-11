@@ -6,7 +6,8 @@ playing on the system.
 
 Built with [Tauri v2](https://tauri.app), React and Rust. The overlay is a
 borderless, transparent, always-on-top window that never takes keyboard focus
-and ignores clicks outside the visible pill.
+and ignores clicks outside the visible pill. A left click inside the island
+spawns a water ripple at the cursor.
 
 ## Features
 
