@@ -114,7 +114,7 @@ appearance:
   compactHeight: 40     # 28-64
   offsetX: 0            # window offset from the top-centre anchor (-200..200)
   offsetY: 0            # -10..200
-  theme: midnight       # midnight | graphite | ocean
+  theme: midnight       # midnight | graphite | ocean | glass
 shortcuts:
   - id: downloads
     kind: folder
@@ -152,9 +152,12 @@ topmost, and it is created on first use and destroyed on close. Creating the
 second webview makes Windows stop compositing the island briefly, so the first
 open reloads the island; the cached media snapshot is restored immediately.
 
-`appearance.theme` selects one of three dark palettes: `midnight` (the default),
-`graphite` and `ocean`. Unknown values fall back to `midnight`, and a file
-written before the field existed loads unchanged.
+`appearance.theme` selects one of four palettes: `midnight` (the default),
+`graphite`, `ocean` and `glass`. The glass palette simulates translucency with
+a specular rim, a reflection layer and static noise; it does not blur the
+desktop, because the island window is transparent and WebView2 cannot blur what
+is behind it. Unknown values fall back to `midnight`, and a file written before
+the field existed loads unchanged.
 
 - Window shell surfaces (Start menu, notification centre, Task View, UAC) are
   drawn above any topmost window, so the island hides behind them.

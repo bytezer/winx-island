@@ -87,11 +87,19 @@ Prerequisites (once): `rustup target add x86_64-pc-windows-msvc`,
   (visualizer toggle, panel tab, theme, pill size, drag offsets, reset). Hand
   edits to shortcuts require a restart, and edits made while the app is running
   can be overwritten.
-- `appearance.theme` is one of `midnight` (default), `graphite`, `ocean`; the
-  Rust validator lives in `settings.rs` (`THEMES`, `is_valid_theme`) and the
-  frontend mirrors it in `src/hooks/useTheme.ts`. Themes are CSS token sets on
-  `:root[data-theme=...]` in `src/styles.css`; `useTheme` sets the attribute in
-  both windows. A YAML file without `theme` must keep loading as `midnight`.
+- `appearance.theme` is one of `midnight` (default), `graphite`, `ocean`,
+  `glass`; the Rust validator lives in `settings.rs` (`THEMES`, `is_valid_theme`)
+  and the frontend mirrors it in `src/hooks/useTheme.ts`. Themes are CSS token
+  sets on `:root[data-theme=...]` in `src/styles.css`; `useTheme` sets the
+  attribute in both windows. A YAML file without `theme` must keep loading as
+  `midnight`.
+- The glass theme is simulated in CSS (translucency, specular rim, a `::after`
+  reflection/noise layer). WebView2 cannot blur the desktop behind a
+  transparent window, so `backdrop-filter` on the island is a no-op: never add
+  it. The only real blur is the album-art `.panel-backdrop`.
+- The settings window is not transparent, so its shell uses the opaque
+  `--shell-surface` token, not `--surface` (which is translucent in glass and
+  would let WebView2's white page show through).
 - IPC surface: `set_interactive_rect`, `media_control`, `get_media_snapshot`,
   `get_settings`,
   `set_visualizer_enabled`, `set_panel_tab`, `set_theme`, `set_compact_size`,
