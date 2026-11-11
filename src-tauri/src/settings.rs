@@ -181,7 +181,7 @@ const SETTINGS_HEADER: &str = r#"# winx-island settings
 #   running, otherwise the tile is drawn in red until it is.
 # - The grid scrolls, so any number of tiles works.
 # - "ui.lastPanelTab" is one of: media, shortcuts.
-# - "visualizer.enabled" drives the peak meter bars.
+# - "visualizer.enabled" drives the spectrum bars.
 # - "appearance.compactWidth" / "compactHeight" size the collapsed pill.
 # - "appearance.offsetX" / "offsetY" move the window from the top-centre
 #   anchor; right-drag the island to set them by hand.
