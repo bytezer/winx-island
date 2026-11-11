@@ -2,12 +2,15 @@
    Every rule is scoped under .settings-shell so the island window, which loads
    the same bundle, is untouched. */
 
+/* `--shell-surface` instead of `--surface`: this window is not transparent, and
+   `--surface` is translucent in the glass theme, which would expose WebView2's
+   default white page behind the shell. */
 .settings-shell {
   display: flex;
   flex-direction: column;
   width: 100%;
   height: 100%;
-  background: var(--surface);
+  background: var(--shell-surface);
   border: 1px solid var(--border);
   color: var(--text);
 }
@@ -238,7 +241,7 @@
 
 .settings-theme-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 10px;
 }
 
@@ -290,6 +293,22 @@
 .settings-swatch-ocean {
   --swatch-raised: #0d1c27;
   --swatch-accent: #5aa9e6;
+}
+
+/* Same `--swatch-*` pair as the others plus the specular sweep that defines the
+   glass look. Later in source order than `.settings-swatch`, so it wins. */
+.settings-swatch-glass {
+  --swatch-raised: #1a1c22;
+  --swatch-accent: #b9d4ff;
+  border-color: rgba(255, 255, 255, 0.28);
+  background:
+    linear-gradient(
+      150deg,
+      rgba(255, 255, 255, 0.55) 0%,
+      rgba(255, 255, 255, 0.08) 45%,
+      rgba(185, 212, 255, 0.18) 100%
+    ),
+    linear-gradient(135deg, var(--swatch-raised), var(--swatch-accent));
 }
 
 /* ---------------------------------------------------------------- slider -- */

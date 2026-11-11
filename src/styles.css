@@ -1,8 +1,9 @@
 /* ----------------------------------------------------------------- theme -- */
 
-/* Three dark themes. `data-theme` is set on <html> by useTheme(); the bare
-   :root block is the midnight set so the first paint before React runs - and
-   the app when the attribute is missing - stays correct. */
+/* Four themes. `data-theme` is set on <html> by useTheme(); the bare :root
+   block is the midnight set so the first paint before React runs - and the app
+   when the attribute is missing - stays correct. `--surface` is translucent in
+   the glass theme, so the opaque settings window uses `--shell-surface`. */
 :root,
 :root[data-theme="midnight"] {
   --text: #f5f5f7;
@@ -12,6 +13,7 @@
   --surface-raised: #16161b;
   --border: rgba(255, 255, 255, 0.085);
   --accent: #8a8f98;
+  --shell-surface: #0b0b0e;
   color-scheme: dark;
 }
 
@@ -23,6 +25,7 @@
   --surface-raised: #1b1b1e;
   --border: rgba(241, 239, 236, 0.1);
   --accent: #a8a29e;
+  --shell-surface: #101012;
   color-scheme: dark;
 }
 
@@ -34,6 +37,19 @@
   --surface-raised: #0d1c27;
   --border: rgba(120, 190, 255, 0.16);
   --accent: #5aa9e6;
+  --shell-surface: #071119;
+  color-scheme: dark;
+}
+
+:root[data-theme="glass"] {
+  --text: #ffffff;
+  --muted: rgba(255, 255, 255, 0.7);
+  --muted-2: rgba(255, 255, 255, 0.44);
+  --surface: rgba(26, 28, 34, 0.78);
+  --surface-raised: rgba(34, 37, 45, 0.8);
+  --border: rgba(255, 255, 255, 0.26);
+  --accent: #b9d4ff;
+  --shell-surface: #0e1014;
   color-scheme: dark;
 }
 
@@ -52,11 +68,13 @@ body,
   overflow: hidden;
 }
 
-/* The overlay must stay transparent; the settings window is opaque. */
+/* The overlay must stay transparent; the settings window is opaque. That
+   window cannot use `--surface`: it is translucent in the glass theme, which
+   would let WebView2's default white page show through the shell. */
 html[data-window="settings"],
 html[data-window="settings"] body,
 html[data-window="settings"] #root {
-  background: var(--surface);
+  background: var(--shell-surface);
 }
 
 body {
@@ -832,5 +850,99 @@ body {
   .progress-fill {
     transition-duration: 1ms;
     animation: none;
+  }
+}
+
+/* ------------------------------------------------------------ glass theme -- */
+
+/* The island window is transparent and WebView2 cannot blur the desktop behind
+   it, so the glass is simulated in CSS: a translucent surface, a specular rim,
+   internal refraction and static noise. The desktop stays sharp through it;
+   never add backdrop-filter here, it would be a no-op. */
+:root[data-theme="glass"] .island {
+  background:
+    linear-gradient(
+      155deg,
+      rgba(255, 255, 255, 0.16) 0%,
+      rgba(255, 255, 255, 0.04) 22%,
+      rgba(255, 255, 255, 0.015) 50%,
+      rgba(255, 255, 255, 0.09) 100%
+    ),
+    var(--surface);
+  box-shadow:
+    0 14px 34px rgba(0, 0, 0, 0.38),
+    0 2px 8px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 0 24px -12px rgba(255, 255, 255, 0.55);
+}
+
+:root[data-theme="glass"] .island[data-view="hover"],
+:root[data-theme="glass"] .island[data-view="panel"] {
+  background:
+    linear-gradient(
+      155deg,
+      rgba(255, 255, 255, 0.18) 0%,
+      rgba(255, 255, 255, 0.05) 22%,
+      rgba(255, 255, 255, 0.02) 50%,
+      rgba(255, 255, 255, 0.1) 100%
+    ),
+    var(--surface-raised);
+  box-shadow:
+    0 20px 48px rgba(0, 0, 0, 0.4),
+    0 4px 12px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 0 28px -14px rgba(255, 255, 255, 0.6);
+}
+
+/* Real reflection sits on top of the glass, not behind it, so this layer
+   deliberately paints above the content. pointer-events stays none so it
+   never swallows a click meant for a control underneath. */
+:root[data-theme="glass"] .island::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0.65;
+  background:
+    radial-gradient(120% 62% at 50% -8%, rgba(255, 255, 255, 0.22), transparent 58%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='128'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='128' height='128' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
+  background-size: auto, 128px 128px;
+  transition: opacity 220ms ease;
+}
+
+:root[data-theme="glass"] .island[data-view="hover"]::after,
+:root[data-theme="glass"] .island[data-view="panel"]::after {
+  opacity: 0.8;
+}
+
+:root[data-theme="glass"] .glow {
+  background: radial-gradient(72% 82% at 50% 0%, var(--accent) 0%, transparent 74%);
+  opacity: 0.2;
+  filter: blur(16px);
+}
+
+/* Higher specificity than the glass `.glow` rule, so the compact pill keeps
+   its dimmer bloom whatever the source order. */
+:root[data-theme="glass"] .island[data-view="compact"] .glow {
+  opacity: 0.1;
+}
+
+/* The artwork backdrop stays the only real blur in the app. */
+:root[data-theme="glass"] .panel-backdrop {
+  opacity: 0.28;
+  filter: blur(48px) saturate(1.6);
+}
+
+:root[data-theme="glass"] .cover {
+  border-color: rgba(255, 255, 255, 0.24);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme="glass"] .island::after {
+    transition: none;
   }
 }

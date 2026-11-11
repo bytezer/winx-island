@@ -23,7 +23,7 @@ export type View = "compact" | "hover" | "panel";
 
 export type PanelTab = "media" | "shortcuts";
 
-export type Theme = "midnight" | "graphite" | "ocean";
+export type Theme = "midnight" | "graphite" | "ocean" | "glass";
 
 export interface Shortcut {
   id: string;

@@ -1,12 +1,13 @@
 import { useEffect } from "react";
 import type { Theme } from "../types";
 
-export const THEMES: Theme[] = ["midnight", "graphite", "ocean"];
+export const THEMES: Theme[] = ["midnight", "graphite", "ocean", "glass"];
 
 export const THEME_LABELS: Record<Theme, string> = {
   midnight: "Midnight",
   graphite: "Graphite",
   ocean: "Ocean",
+  glass: "Glass",
 };
 
 /** Unknown names (hand-edited YAML) fall back to the default theme. */

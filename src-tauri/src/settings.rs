@@ -16,8 +16,8 @@ use crate::shortcuts;
 pub const PANEL_TAB_MEDIA: &str = "media";
 pub const PANEL_TAB_SHORTCUTS: &str = "shortcuts";
 
-/// Dark colour themes supported by the overlay and the settings window.
-pub const THEMES: [&str; 3] = ["midnight", "graphite", "ocean"];
+/// Colour themes supported by the overlay and the settings window.
+pub const THEMES: [&str; 4] = ["midnight", "graphite", "ocean", "glass"];
 pub const DEFAULT_THEME: &str = "midnight";
 
 pub fn is_valid_theme(theme: &str) -> bool {
@@ -72,7 +72,7 @@ pub struct AppearanceSettings {
     pub offset_x: i32,
     #[serde(deserialize_with = "de_number")]
     pub offset_y: i32,
-    /// Name of the active dark theme; see `THEMES`.
+    /// Name of the active theme; see `THEMES`.
     pub theme: String,
 }
 
@@ -185,7 +185,7 @@ const SETTINGS_HEADER: &str = r#"# winx-island settings
 # - "appearance.compactWidth" / "compactHeight" size the collapsed pill.
 # - "appearance.offsetX" / "offsetY" move the window from the top-centre
 #   anchor; right-drag the island to set them by hand.
-# - "appearance.theme" is one of: midnight, graphite, ocean.
+# - "appearance.theme" is one of: midnight, graphite, ocean, glass.
 
 "#;
 
