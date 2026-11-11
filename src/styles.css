@@ -14,8 +14,6 @@
   --border: rgba(255, 255, 255, 0.085);
   --accent: #8a8f98;
   --shell-surface: #0b0b0e;
-  --ripple: rgba(255, 255, 255, 0.42);
-  --ripple-core: rgba(255, 255, 255, 0.3);
   color-scheme: dark;
 }
 
@@ -28,8 +26,6 @@
   --border: rgba(241, 239, 236, 0.1);
   --accent: #a8a29e;
   --shell-surface: #101012;
-  --ripple: rgba(241, 239, 236, 0.4);
-  --ripple-core: rgba(241, 239, 236, 0.28);
   color-scheme: dark;
 }
 
@@ -42,8 +38,6 @@
   --border: rgba(120, 190, 255, 0.16);
   --accent: #5aa9e6;
   --shell-surface: #071119;
-  --ripple: rgba(150, 205, 255, 0.5);
-  --ripple-core: rgba(120, 190, 255, 0.35);
   color-scheme: dark;
 }
 
@@ -56,8 +50,6 @@
   --border: rgba(255, 255, 255, 0.26);
   --accent: #b9d4ff;
   --shell-surface: #0e1014;
-  --ripple: rgba(255, 255, 255, 0.55);
-  --ripple-core: rgba(255, 255, 255, 0.42);
   color-scheme: dark;
 }
 
@@ -166,82 +158,6 @@ body {
   opacity: 1;
   transform: none;
   pointer-events: auto;
-}
-
-/* ---------------------------------------------------------------- ripple -- */
-
-/* Centre-x and the top edge stay fixed while the island expands, so the
-   ripple is anchored to those two axes and rides out the size transition.
-   Everything animated here is transform/opacity only. */
-.ripple-layer {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.ripple {
-  position: absolute;
-  width: 0;
-  height: 0;
-  animation: ripple-life 720ms linear both;
-}
-
-.ripple-ring {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 26px;
-  height: 26px;
-  margin: -13px 0 0 -13px;
-  border-radius: 50%;
-  border: 1px solid var(--ripple);
-  animation: ripple-out 620ms cubic-bezier(0.16, 0.84, 0.44, 1) both;
-}
-
-.ripple-core {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 56px;
-  height: 56px;
-  margin: -28px 0 0 -28px;
-  border-radius: 50%;
-  background: radial-gradient(circle, var(--ripple-core) 0%, transparent 70%);
-  animation: ripple-core 260ms ease-out both;
-}
-
-@keyframes ripple-out {
-  from {
-    transform: scale(0.35);
-    opacity: 0.9;
-  }
-  60% {
-    opacity: 0.32;
-  }
-  to {
-    transform: scale(10);
-    opacity: 0;
-  }
-}
-
-@keyframes ripple-core {
-  from {
-    transform: scale(0.3);
-    opacity: 0.85;
-  }
-  to {
-    transform: scale(1.15);
-    opacity: 0;
-  }
-}
-
-@keyframes ripple-life {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 1;
-  }
 }
 
 /* --------------------------------------------------------------- compact -- */
@@ -934,10 +850,6 @@ body {
   .progress-fill {
     transition-duration: 1ms;
     animation: none;
-  }
-
-  .ripple-layer {
-    display: none;
   }
 }
 
