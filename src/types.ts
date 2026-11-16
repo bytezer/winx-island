@@ -1,3 +1,10 @@
+export interface MediaSource {
+  id: string;
+  label: string;
+  title: string;
+  playing: boolean;
+}
+
 export interface MediaSnapshot {
   available: boolean;
   title: string;
@@ -16,6 +23,10 @@ export interface MediaSnapshot {
   playbackError: string | null;
   shuffleEnabled: boolean;
   repeatMode: "off" | "all" | "one";
+  canPlayPause?: boolean;
+  sourceSelection?: string;
+  selectedSourceId?: string;
+  sources?: MediaSource[];
 }
 
 export interface PointerEvent {
@@ -57,6 +68,7 @@ export interface MusicLibraryActions {
   onOpen: () => void;
   onFolders: () => void;
   onSystem: () => void;
+  onSource?: (id: string) => void;
 }
 
 export type VisualizerColorMode = "rgb" | "gradient" | "solid";

@@ -40,6 +40,7 @@ export function ProgressBar({ positionMs, durationMs, enabled, showTimes, onSeek
         aria-valuenow={Math.round(displayPosition / 1000)}
         tabIndex={-1}
         onPointerDown={(event) => {
+          if (event.button !== 0) return;
           event.stopPropagation();
           if (!enabled) return;
           dragging.current = true;

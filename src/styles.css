@@ -821,3 +821,33 @@ body {
   background: color-mix(in srgb, var(--accent) 25%, transparent);
   box-shadow: inset 0 -2px 0 var(--accent);
 }
+
+.media-sources {
+  height: 32px;
+  min-height: 32px;
+  align-items: flex-start;
+  overflow-y: hidden;
+  display: flex;
+  gap: 5px;
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 5px 0 3px;
+  scrollbar-width: thin;
+}
+.media-sources button {
+  flex: none;
+  max-width: 150px;
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--muted);
+  background: transparent;
+  font: inherit;
+  font-size: 10px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  cursor: pointer;
+}
+.media-sources button[aria-pressed="true"] { color: var(--text); background: var(--surface-raised); border-color: var(--accent); }
+.media-sources button[data-current="true"] { color: var(--text); }

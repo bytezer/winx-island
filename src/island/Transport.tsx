@@ -70,7 +70,7 @@ export function Transport({ media, large, busy = false, onAction }: TransportPro
       <button
         type="button"
         className="icon-button"
-        disabled={!media.available || !media.canPrev}
+        disabled={!media.canPrev}
         onClick={(event) => stop(event, "prev")}
         aria-label="Previous track"
       >
@@ -79,16 +79,16 @@ export function Transport({ media, large, busy = false, onAction }: TransportPro
       <button
         type="button"
         className={`play-button ${large ? "play-button-large" : ""}`}
-        disabled={busy}
+        disabled={busy || media.canPlayPause === false}
         onClick={(event) => stop(event, "play_pause")}
-        aria-label={!media.available ? "Open music files" : media.playing ? "Pause" : "Play"}
+        aria-label={!media.available && !media.sourceSelection ? "Open music files" : media.playing ? "Pause" : "Play"}
       >
         {media.playing ? <PauseIcon large={large} /> : <PlayIcon large={large} />}
       </button>
       <button
         type="button"
         className="icon-button"
-        disabled={!media.available || !media.canNext}
+        disabled={!media.canNext}
         onClick={(event) => stop(event, "next")}
         aria-label="Next track"
       >

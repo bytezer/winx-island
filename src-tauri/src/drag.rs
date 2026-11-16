@@ -9,7 +9,7 @@ use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::time::Duration;
 
-use tauri::{AppHandle, Manager, PhysicalPosition};
+use tauri::{AppHandle, Emitter, Manager, PhysicalPosition};
 use windows::Win32::Foundation::POINT;
 use windows::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, VK_RBUTTON};
 use windows::Win32::UI::WindowsAndMessaging::GetCursorPos;
@@ -17,87 +17,100 @@ use windows::Win32::UI::WindowsAndMessaging::GetCursorPos;
 use crate::logger::logline;
 use crate::pointer::PointerState;
 use crate::settings::Settings;
-use crate::window_setup::CANVAS_WIDTH;
 
 pub fn begin(app: AppHandle, state: Arc<PointerState>, settings: Arc<Settings>) {
-    // One drag at a time; a second right click while dragging is ignored.
     if state.dragging.swap(true, Ordering::SeqCst) {
         return;
     }
 
+    let _ = app.emit("island://dragging", true);
     std::thread::spawn(move || {
-        if let Err(error) = run(&app, &settings) {
+        if let Err(error) = run(&app, &state, &settings) {
             logline!("drag aborted: {error}");
         }
         state.dragging.store(false, Ordering::SeqCst);
+        let _ = app.emit("island://dragging", false);
     });
 }
 
-fn run(app: &AppHandle, settings: &Arc<Settings>) -> Result<(), String> {
+fn run(app: &AppHandle, state: &PointerState, settings: &Arc<Settings>) -> Result<(), String> {
+    use crate::positioning::{clamp_origin, nearest_monitor, Bounds, Point};
     let window = app
         .get_webview_window("island")
-        .ok_or_else(|| "island window is gone".to_string())?;
-
-    let cursor = cursor_position().ok_or_else(|| "no cursor position".to_string())?;
-    let origin = window
-        .outer_position()
+        .ok_or("island window is gone")?;
+    let cursor = cursor_position().ok_or("no cursor position")?;
+    let origin = window.outer_position().map_err(|error| error.to_string())?;
+    let start_scale = window.scale_factor().map_err(|error| error.to_string())?;
+    let original = state.rect();
+    let appearance = settings.appearance();
+    let compact = Bounds {
+        x: (560.0 - appearance.compact_width as f64) / 2.0,
+        y: 10.0,
+        w: appearance.compact_width as f64,
+        h: appearance.compact_height as f64,
+    };
+    let grab = Point {
+        x: compact.x
+            + (((cursor.x - origin.x) as f64 / start_scale - original.x) / original.w)
+                .clamp(0.0, 1.0)
+                * compact.w,
+        y: compact.y
+            + (((cursor.y - origin.y) as f64 / start_scale - original.y) / original.h)
+                .clamp(0.0, 1.0)
+                * compact.h,
+    };
+    let monitors = window
+        .available_monitors()
         .map_err(|error| error.to_string())?;
-
-    // Same anchor and bounds the persisted offset uses, so the window cannot
-    // be dragged somewhere that would be clamped back on restart.
-    let monitor = window
-        .primary_monitor()
-        .ok()
-        .flatten()
-        .ok_or_else(|| "no primary monitor".to_string())?;
-    let scale = monitor.scale_factor();
-    let base_x = monitor.position().x as f64
-        + (monitor.size().width as f64 - CANVAS_WIDTH * scale) / 2.0;
-    let base_y = monitor.position().y as f64;
-    let min_x = base_x - 200.0 * scale;
-    let max_x = base_x + 200.0 * scale;
-    let min_y = base_y - 10.0 * scale;
-    let max_y = base_y + 200.0 * scale;
-
-    // The poller stops toggling click-through while dragging, so force the
-    // window interactive for the duration of the gesture.
+    let screens: Vec<_> = monitors.iter().map(crate::window_setup::screen).collect();
     let _ = window.set_ignore_cursor_events(false);
-
     loop {
-        std::thread::sleep(Duration::from_millis(16));
+        if let Some(current) = cursor_position() {
+            let scale = window.scale_factor().unwrap_or(start_scale);
+            let point = Point {
+                x: current.x as f64,
+                y: current.y as f64,
+            };
+            if let Some(index) = nearest_monitor(point, &screens) {
+                let wanted = Point {
+                    x: point.x - grab.x * scale,
+                    y: point.y - grab.y * scale,
+                };
+                let position = clamp_origin(wanted, compact, scale, screens[index]);
+                let _ = window.set_position(PhysicalPosition::new(
+                    position.x.round() as i32,
+                    position.y.round() as i32,
+                ));
+            }
+        }
         if !right_button_down() {
             break;
         }
-        if let Some(current) = cursor_position() {
-            let x = (origin.x + (current.x - cursor.x)) as f64;
-            let y = (origin.y + (current.y - cursor.y)) as f64;
-            let _ = window.set_position(PhysicalPosition::new(
-                x.clamp(min_x, max_x).round() as i32,
-                y.clamp(min_y, max_y).round() as i32,
-            ));
-        }
+        std::thread::sleep(Duration::from_millis(8));
     }
-
     let _ = window.set_ignore_cursor_events(true);
     store_offset(&window, settings);
     Ok(())
 }
 
 fn store_offset(window: &tauri::WebviewWindow, settings: &Arc<Settings>) {
-    let Ok(Some(monitor)) = window.primary_monitor() else {
+    let Ok(Some(primary)) = window.primary_monitor() else {
         return;
     };
     let Ok(position) = window.outer_position() else {
         return;
     };
-
-    let scale = monitor.scale_factor();
-    let base_x = monitor.position().x as f64
-        + (monitor.size().width as f64 - CANVAS_WIDTH * scale) / 2.0;
-    let base_y = monitor.position().y as f64;
-
-    let offset_x = ((position.x as f64 - base_x) / scale).round() as i32;
-    let offset_y = ((position.y as f64 - base_y) / scale).round() as i32;
+    let Ok(scale) = window.scale_factor() else {
+        return;
+    };
+    let (offset_x, offset_y) = crate::positioning::offsets_from_origin(
+        crate::positioning::Point {
+            x: position.x as f64,
+            y: position.y as f64,
+        },
+        scale,
+        crate::window_setup::screen(&primary),
+    );
     settings.set_offset(offset_x, offset_y);
     logline!("island moved to offsetX={offset_x} offsetY={offset_y}");
 }

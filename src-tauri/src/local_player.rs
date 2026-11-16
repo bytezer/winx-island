@@ -91,6 +91,15 @@ impl LocalPlayer {
         Ok(local)
     }
 
+    pub async fn select(&mut self) -> windows::core::Result<()> {
+        self.use_local = true;
+        if !self.loaded && self.queue.current().is_some() { self.load(false).await?; }
+        self.save();
+        Ok(())
+    }
+
+    pub fn has_tracks(&self) -> bool { self.queue.current().is_some() }
+
     pub fn active(&self) -> bool {
         self.use_local && self.queue.current().is_some()
     }
@@ -235,6 +244,8 @@ impl LocalPlayer {
             playback_error: error,
             shuffle_enabled: self.queue.shuffle,
             repeat_mode: self.queue.repeat.as_str().into(),
+            can_play_pause: true,
+            ..Default::default()
         })
     }
 

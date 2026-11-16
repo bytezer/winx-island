@@ -30,6 +30,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "THEME-NATIVE-01 OK: legacy settings load with the existing look and no disk mutation"
     );
 
+    loaded.set_offset(-2400, 1200);
+    assert_eq!(loaded.appearance().offset_x, -2400);
+    assert_eq!(loaded.appearance().offset_y, 1200);
+    let moved = settings::Settings::load();
+    assert_eq!(moved.appearance().offset_x, -2400);
+    assert_eq!(moved.appearance().offset_y, 1200);
+    loaded.set_offset(24, 16);
+    println!("MOVE-PERSIST OK: large negative/positive offsets survive persistence without old clamp");
+
     let requested = theme::ThemeSettings {
         island_roundness: 0,
         bar_roundness: 0,

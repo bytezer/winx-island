@@ -1,6 +1,6 @@
 # winx-island
 
-A Dynamic Island style overlay for Windows 11: a floating pill pinned to the
+A Dynamic Island style overlay for Windows 11: a movable floating pill initially placed at the
 top centre of the screen that expands on hover to show and control whatever is
 playing on the system.
 
@@ -158,6 +158,45 @@ paused; press Play to resume. Music files are never copied or modified. Use
 application through Windows media controls. Missing or unsupported files show
 an error; choose another file or advance to the next track to recover.
 
+### Browser and application audio
+
+No browser extension or Spotify plugin is required. The island enumerates Windows
+System Media Transport Controls sessions, including browser Media Session sources.
+Use the source row below the media controls:
+
+- **Automático** follows a playing external session, then local playback, then
+  Windows' preferred session. This is the startup mode.
+- **Sistema** pauses local playback and follows external Windows sessions.
+- Select **Archivos locales** or a named app to pin that source until it closes.
+  Separate sessions from the same browser have separate identities and track titles
+  in their tooltips. A closed source returns to automatic selection.
+
+Controls target the displayed source, even if Windows changes its preferred app.
+The playhead incorporates the source's timeline update time. Unsupported commands
+show an error; unavailable controls are disabled. With no registered session,
+play/previous/next send the standard Windows multimedia keys, without opening a
+folder picker. Titles and seeking require support from the source application;
+closed pages and applications cannot be made to play arbitrary content.
+
+The spectrum still visualizes the combined audio on the default Windows output,
+including apps that do not publish track information. Source selection does not
+filter the audio capture. Importing files selects the local queue; use Automático
+to resume following other apps. Source pins last for the current run.
+
+Focused checks:
+
+```bash
+rustc --edition 2021 --test tests/positioning_test.rs -o /tmp/winx-position-tests
+/tmp/winx-position-tests
+rustc --edition 2021 --test tests/media_choice_test.rs -o /tmp/winx-media-tests
+/tmp/winx-media-tests
+cargo xwin build --manifest-path src-tauri/Cargo.toml --example system_media_check --release --target x86_64-pc-windows-msvc
+./src-tauri/target/x86_64-pc-windows-msvc/release/examples/system_media_check.exe --list
+```
+
+Without `--list`, the native check controls only a test browser session titled
+`winx compatibility fixture`; it fails if that isolated fixture is absent.
+
 ### Local player checks
 
 ```bash
@@ -281,8 +320,8 @@ visualizer:
 appearance:
   compactWidth: 132     # collapsed pill, logical px (100-320)
   compactHeight: 40     # 28-64
-  offsetX: 0            # window offset from the top-centre anchor (-200..200)
-  offsetY: 0            # -10..200
+  offsetX: 0            # logical offset from the primary monitor top-centre anchor
+  offsetY: 0            # no fixed offset range; placement uses connected monitors
 shortcuts:
   - id: downloads
     kind: folder
@@ -297,9 +336,13 @@ ui:
   lastPanelTab: media
 ```
 
-Right-drag the island with the right mouse button to move it; the resulting
-offset is written back to `appearance.offsetX` / `offsetY` and clamped to the
-ranges above so the hit-test canvas always stays on screen.
+Hold the right mouse button on the island and drag to move it across connected
+monitors. It contracts during the gesture; the visible pill determines the screen
+boundary, so the transparent canvas may extend off screen. Expansion is adjusted
+inward near screen edges. The resulting offset is saved in
+`appearance.offsetX` / `offsetY` without the old fixed limits. Restarting restores
+it, or recovers it onto the nearest connected monitor if the old monitor is gone.
+Left-drag the timeline to seek; right-dragging from it moves the island.
 
 Paths may use `%VAR%` environment expansion. Folder shortcuts are disabled and
 drawn in red while their target is missing. Edits to `shortcuts` or

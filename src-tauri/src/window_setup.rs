@@ -19,9 +19,6 @@ use crate::logger::logline;
 pub const CANVAS_WIDTH: f64 = 560.0;
 pub const CANVAS_HEIGHT: f64 = 380.0;
 
-/// Physical pixel top margin of the canvas, so the pill does not hug the edge.
-const TOP_MARGIN: f64 = 0.0;
-
 pub fn hwnd_of(window: &WebviewWindow) -> Option<HWND> {
     let handle = window.window_handle().ok()?;
     match handle.as_raw() {
@@ -98,28 +95,37 @@ pub fn reapply_click_through_styles(hwnd: HWND) {
     }
 }
 
-/// Places the canvas horizontally centred on the primary monitor, shifted by
-/// the user configured offset.
+pub fn screen(monitor: &tauri::Monitor) -> crate::positioning::Screen {
+    crate::positioning::Screen {
+        x: monitor.position().x as f64,
+        y: monitor.position().y as f64,
+        width: monitor.size().width as f64,
+        height: monitor.size().height as f64,
+        scale: monitor.scale_factor(),
+    }
+}
+
+pub fn place_for_rect(window: &WebviewWindow, offset_x: i32, offset_y: i32, rect: crate::pointer::Rect) {
+    use crate::positioning::{anchor_from_offsets, monitor_for_anchor, origin_for_anchor, Bounds};
+    let Ok(Some(primary)) = window.primary_monitor() else { return; };
+    let Ok(monitors) = window.available_monitors() else { return; };
+    let screens: Vec<_> = monitors.iter().map(screen).collect();
+    let anchor = anchor_from_offsets(screen(&primary), offset_x, offset_y);
+    let Some(index) = monitor_for_anchor(anchor, &screens) else { return; };
+    let mut target = screens[index];
+    for _ in 0..3 {
+        let position = origin_for_anchor(anchor, Bounds { x: rect.x, y: rect.y, w: rect.w, h: rect.h }, target);
+        let _ = window.set_position(PhysicalPosition::new(position.x.round() as i32, position.y.round() as i32));
+        let actual_scale = window.scale_factor().unwrap_or(target.scale);
+        if (actual_scale - target.scale).abs() < 0.001 { break; }
+        target.scale = actual_scale;
+    }
+}
+
 pub fn place(window: &WebviewWindow, offset_x: f64, offset_y: f64) {
-    let Ok(Some(monitor)) = window.primary_monitor() else {
-        logline!("no primary monitor available");
-        return;
-    };
-
-    let scale = monitor.scale_factor();
-    let size = monitor.size();
-    let position = monitor.position();
-    let width = (CANVAS_WIDTH * scale).round() as i32;
-    let x = position.x + (size.width as i32 - width) / 2 + (offset_x * scale).round() as i32;
-    let y = position.y + (TOP_MARGIN * scale).round() as i32 + (offset_y * scale).round() as i32;
-
     let _ = window.set_size(LogicalSize::new(CANVAS_WIDTH, CANVAS_HEIGHT));
-    let _ = window.set_position(PhysicalPosition::new(x, y));
-    logline!(
-        "placed at x={x} y={y} offset=({offset_x},{offset_y}) canvas={}x{} scale={scale}",
-        CANVAS_WIDTH,
-        CANVAS_HEIGHT
-    );
+    place_for_rect(window, offset_x.round() as i32, offset_y.round() as i32, crate::pointer::Rect::default());
+    logline!("placed offset=({offset_x},{offset_y}) canvas={}x{}", CANVAS_WIDTH, CANVAS_HEIGHT);
 }
 
 /// Some shell surfaces and other topmost windows can steal the band, so the

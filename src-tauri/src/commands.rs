@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::media::{Command, Controller};
 use crate::pointer::{PointerState, Rect};
@@ -16,13 +16,19 @@ pub struct RectInput {
 }
 
 #[tauri::command]
-pub fn set_interactive_rect(rect: RectInput, state: State<'_, Arc<PointerState>>) {
+pub fn set_interactive_rect(rect: RectInput, state: State<'_, Arc<PointerState>>, settings: State<'_, Arc<Settings>>, app: AppHandle) {
     state.set_rect(Rect {
         x: rect.x,
         y: rect.y,
         w: rect.w,
         h: rect.h,
     });
+    if !state.dragging.load(std::sync::atomic::Ordering::Relaxed) {
+        if let Some(window) = app.get_webview_window("island") {
+            let appearance = settings.appearance();
+            crate::window_setup::place_for_rect(&window, appearance.offset_x, appearance.offset_y, state.rect());
+        }
+    }
 }
 
 #[tauri::command]
@@ -35,6 +41,11 @@ pub fn media_control(
         "seek" => controller.send(Command::Seek(position_ms.unwrap_or(0))),
         other => controller.send(Command::Transport(other.to_string())),
     }
+}
+
+#[tauri::command]
+pub fn select_media_source(id: String, controller: State<'_, Controller>) -> Result<(), String> {
+    controller.send(Command::SelectSource(id))
 }
 
 #[tauri::command]

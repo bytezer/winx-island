@@ -9,6 +9,9 @@ mod drag;
 mod focus;
 mod logger;
 mod media;
+mod media_choice;
+mod positioning;
+mod system_media;
 mod media_snapshot;
 mod local_player;
 mod music_picker;
@@ -48,6 +51,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             commands::set_interactive_rect,
             commands::media_control,
+            commands::select_media_source,
             commands::open_music_files,
             commands::add_music_folders,
             commands::use_system_media,

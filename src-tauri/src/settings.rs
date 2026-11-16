@@ -84,8 +84,8 @@ impl AppearanceSettings {
         Self {
             compact_width: self.compact_width.clamp(100, 320),
             compact_height: self.compact_height.clamp(28, 64),
-            offset_x: self.offset_x.clamp(-200, 200),
-            offset_y: self.offset_y.clamp(-10, 200),
+            offset_x: self.offset_x,
+            offset_y: self.offset_y,
         }
     }
 }

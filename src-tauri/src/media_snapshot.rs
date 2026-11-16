@@ -1,5 +1,14 @@
 use serde::Serialize;
 
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MediaSource {
+    pub id: String,
+    pub label: String,
+    pub title: String,
+    pub playing: bool,
+}
+
 #[derive(Clone, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MediaSnapshot {
@@ -20,21 +29,8 @@ pub struct MediaSnapshot {
     pub playback_error: Option<String>,
     pub shuffle_enabled: bool,
     pub repeat_mode: String,
-}
-
-impl MediaSnapshot {
-    pub fn signature(&self) -> String {
-        format!(
-            "{}|{}|{}|{}|{}|{}|{}|{}|{}",
-            self.available,
-            self.playing,
-            self.title,
-            self.artist,
-            self.album,
-            self.duration_ms,
-            self.source_app,
-            self.can_next,
-            self.art.as_ref().map_or(0, |art| art.len())
-        )
-    }
+    pub can_play_pause: bool,
+    pub source_selection: String,
+    pub selected_source_id: String,
+    pub sources: Vec<MediaSource>,
 }

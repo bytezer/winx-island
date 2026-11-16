@@ -1,4 +1,4 @@
-import { MusicLibraryControls } from "./MusicLibraryControls";
+import { MusicLibraryControls, MediaSourceControls } from "./MusicLibraryControls";
 import { useLevel } from "../hooks/useLevel";
 import { AUDIO_NOISE_FLOOR } from "../lib/visualizer";
 import type { MediaAction, MediaSnapshot, MusicLibraryActions } from "../types";
@@ -23,15 +23,16 @@ export function HoverCard({ media, library, positionMs, visualizer, onAction, on
       <div className="hover-main">
         <CoverArt src={media.art} size={78} radius={16} />
         <div className="meta">
-          <div className="meta-title">{media.available ? media.title || "Unknown track" : systemAudio ? "System audio" : "Your music, right here"}</div>
+          <div className="meta-title">{media.available ? media.title || "Unknown track" : systemAudio ? "System audio" : media.sourceSelection ? "Audio de tus aplicaciones" : "Your music, right here"}</div>
           <div className="meta-sub">
-            {media.available ? media.artist || "Unknown artist" : systemAudio ? "Visualizing Windows output" : "Choose music from your PC"}
+            {media.available ? media.artist || "Unknown artist" : systemAudio ? "Visualizing Windows output" : media.sourceSelection ? "YouTube, Spotify, navegador o archivos locales" : "Choose music from your PC"}
           </div>
-          <MusicLibraryControls media={media} library={library} />
+          <MusicLibraryControls media={media} library={library} showSources={false} />
         </div>
         <Transport media={media} busy={library.busy} onAction={onAction} />
       </div>
 
+      <MediaSourceControls media={media} library={library} />
       <div className="hover-bottom">
         <ProgressBar
           positionMs={positionMs}

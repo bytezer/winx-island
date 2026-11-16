@@ -45,8 +45,8 @@ function MediaPanel({ media, library, positionMs, visualizer, onAction, onSeek }
               {media.available ? (media.playing ? "Playing" : "Paused") : systemAudio ? "System audio" : "Idle"}
             </div>
           </div>
-          <div className="panel-title">{media.available ? media.title || "Unknown track" : systemAudio ? "System audio" : "Your music, right here"}</div>
-          <div className="meta-sub">{media.available ? media.artist || "Unknown artist" : systemAudio ? "Visualizing Windows output" : "Choose music from your PC"}</div>
+          <div className="panel-title">{media.available ? media.title || "Unknown track" : systemAudio ? "System audio" : media.sourceSelection ? "Audio de tus aplicaciones" : "Your music, right here"}</div>
+          <div className="meta-sub">{media.available ? media.artist || "Unknown artist" : systemAudio ? "Visualizing Windows output" : media.sourceSelection ? "Reproduce en cualquier app o agrega archivos" : "Choose music from your PC"}</div>
         </div>
       </div>
 

@@ -21,6 +21,9 @@ const EMPTY: MediaSnapshot = {
   playbackError: null,
   shuffleEnabled: false,
   repeatMode: "off",
+  sourceSelection: "auto",
+  canPlayPause: true,
+  sources: [],
 };
 
 export function useMedia() {
@@ -78,8 +81,14 @@ export function useMedia() {
     }
   }, []);
 
+  const onSource = useCallback(async (id: string) => {
+    setError(null);
+    try { await invoke("select_media_source", { id }); }
+    catch (reason) { setError(String(reason)); }
+  }, []);
+
   const onAction = useCallback(async (action: MediaAction) => {
-    if (action === "play_pause" && !media.available) {
+    if (action === "play_pause" && !media.available && !media.sourceSelection) {
       await onFolders();
       return;
     }
@@ -89,7 +98,7 @@ export function useMedia() {
     } catch (reason) {
       setError(String(reason));
     }
-  }, [media.available, onFolders]);
+  }, [media.available, media.sourceSelection, onFolders]);
 
   const onSeek = useCallback(async (positionMs: number) => {
     setError(null);
@@ -106,6 +115,7 @@ export function useMedia() {
     onOpen,
     onFolders,
     onSystem,
+    onSource,
   };
   return { media, receivedAt, library, onAction, onSeek };
 }
@@ -125,7 +135,6 @@ export function usePlayhead(media: MediaSnapshot, receivedAt: RefObject<number>,
     const elapsed = performance.now() - receivedAt.current;
     const next = media.positionMs + elapsed;
     return media.durationMs > 0 ? Math.min(next, media.durationMs) : next;
-    // `tick` is intentionally part of the dependency list to drive re-renders.
   }, [media.positionMs, media.durationMs, media.playing, receivedAt, tick]);
 
   return position;

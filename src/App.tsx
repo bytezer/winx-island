@@ -1,6 +1,7 @@
 import { SpectrumAnimationContext, SpectrumActiveContext } from "./hooks/useSpectrumAnimation";
 import { createSpectrumAnimation } from "./lib/spectrum-renderer";
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
+import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { ThemeContext } from "./hooks/useTheme";
 import { normalizeTheme, themeVariables, themeAccent } from "./lib/theme";
@@ -37,6 +38,7 @@ export default function App() {
   const { visualizerEnabled, appearance, theme: savedTheme, lastPanelTab, shortcuts } = useSettings();
   const theme = useMemo(() => normalizeTheme(savedTheme), [savedTheme]);
   const inside = usePointerInside();
+  const [dragging, setDragging] = useState(false);
   const [view, setView] = useState<View>(forcedView ?? "compact");
   const [accent, setAccent] = useState<string | null>(null);
   const [now, setNow] = useState(() => new Date());
@@ -44,8 +46,13 @@ export default function App() {
 
   const layout = useMemo(() => {
     const sizes = layoutFor(appearance, theme.islandRoundness);
-    return library.error ? { ...sizes, hover: { ...sizes.hover, height: sizes.hover.height + 44 } } : sizes;
-  }, [appearance, theme.islandRoundness, library.error]);
+    const sourcesHeight = media.sourceSelection ? 32 : 0;
+    return {
+      ...sizes,
+      hover: { ...sizes.hover, height: sizes.hover.height + sourcesHeight + (library.error ? 44 : 0) },
+      panel: { ...sizes.panel, height: sizes.panel.height + sourcesHeight },
+    };
+  }, [appearance, theme.islandRoundness, library.error, media.sourceSelection]);
   useInteractiveRect(view, layout);
 
   useEffect(() => {
@@ -56,13 +63,21 @@ export default function App() {
   }, [media.available]);
 
   useEffect(() => {
-    if (forcedView) return;
+    const subscription = listen<boolean>("island://dragging", event => {
+      setDragging(event.payload);
+      if (event.payload) setView("compact");
+    });
+    return () => { void subscription.then(off => off()); };
+  }, []);
+
+  useEffect(() => {
+    if (forcedView || dragging) return;
     if (!inside) {
       const timeout = window.setTimeout(() => setView("compact"), 260);
       return () => window.clearTimeout(timeout);
     }
     setView((current) => (current === "compact" ? "hover" : current));
-  }, [inside]);
+  }, [inside, dragging]);
 
   useEffect(() => {
     if (!media.art) {

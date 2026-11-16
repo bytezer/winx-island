@@ -3,9 +3,10 @@ import type { MediaSnapshot, MusicLibraryActions } from "../types";
 interface MusicLibraryControlsProps {
   media: MediaSnapshot;
   library: MusicLibraryActions;
+  showSources?: boolean;
 }
 
-export function MusicLibraryControls({ media, library }: MusicLibraryControlsProps) {
+export function MusicLibraryControls({ media, library, showSources = true }: MusicLibraryControlsProps) {
   const local = media.sourceApp === "winx-island.local";
 
   return (
@@ -35,7 +36,22 @@ export function MusicLibraryControls({ media, library }: MusicLibraryControlsPro
           </>
         )}
       </div>
+      {showSources && <MediaSourceControls media={media} library={library} />}
       {library.error && <div className="music-error" role="alert" title={library.error}>{library.error}</div>}
+    </div>
+  );
+}
+
+export function MediaSourceControls({ media, library }: MusicLibraryControlsProps) {
+  if (!library.onSource || !media.sourceSelection) return null;
+  return (
+    <div className="media-sources" role="group" aria-label="Fuentes de reproducción" onClick={(event) => event.stopPropagation()}>
+        <button type="button" aria-pressed={media.sourceSelection === "auto"} onClick={() => library.onSource?.("auto")} title="Seguir la reproducción activa">Automático</button>
+        <button type="button" aria-pressed={media.sourceSelection === "system"} onClick={() => library.onSource?.("system")} title="Apps de Windows y teclas multimedia">Sistema</button>
+        {media.sources?.map(source => <button type="button" key={source.id} data-source-id={source.id} aria-label={`${source.label}: ${source.title || "Sin título"}`} aria-pressed={media.sourceSelection === source.id} data-current={media.selectedSourceId === source.id}
+          onClick={() => library.onSource?.(source.id)} title={`${source.label}${source.title ? ` · ${source.title}` : ""}${source.playing ? " · Reproduciendo" : ""}`}>
+          {source.playing && <span aria-hidden="true">● </span>}{source.label}
+        </button>)}
     </div>
   );
 }

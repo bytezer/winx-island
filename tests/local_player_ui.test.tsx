@@ -79,3 +79,29 @@ test("MODE-05: system sessions do not expose local mode buttons", () => {
   const html = renderToStaticMarkup(createElement(Transport, { media: { ...empty, available: true, sourceApp: "browser" }, onAction: () => {} }));
   assert.doesNotMatch(html, /Aleatorio|Repetición:/);
 });
+
+test("MEDIA-UI-01: source controls expose automatic, local and distinct browser sessions", () => {
+  const media = { ...empty, sourceSelection: "auto", selectedSourceId: "system:2", sources: [
+    { id: "system:1", label: "Edge", title: "YouTube", playing: false },
+    { id: "system:2", label: "Spotify", title: "Track", playing: true },
+    { id: "local", label: "Archivos locales", title: "Song", playing: false },
+  ] };
+  const html = renderToStaticMarkup(createElement(MusicLibraryControls, { media, library: { ...library, onSource: () => {} } }));
+  assert.match(html, /Fuentes de reproducción/);
+  assert.match(html, /Automático/);
+  assert.match(html, /Edge · YouTube/);
+  assert.match(html, /Spotify · Track/);
+  assert.match(html, /Archivos locales/);
+  assert.match(html, /data-current="true"/);
+});
+
+test("MEDIA-UI-02: global playback offers media keys instead of opening folders", () => {
+  const html = renderToStaticMarkup(createElement(Transport, { media: { ...empty, sourceSelection: "auto", canPlayPause: true, canNext: true, canPrev: true }, onAction: () => {} }));
+  assert.match(html, /aria-label="Play"/);
+  assert.doesNotMatch(html, /Open music files|disabled/);
+});
+
+test("MEDIA-UI-03: unsupported playback controls are disabled without hiding audio visualization", () => {
+  const html = renderToStaticMarkup(createElement(Transport, { media: { ...empty, available: true, canPlayPause: false, sourceApp: "browser" }, onAction: () => {} }));
+  assert.match(html, /disabled=""[^>]*aria-label="Play"/);
+});
