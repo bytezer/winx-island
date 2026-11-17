@@ -15,7 +15,7 @@ The single exception is **user-facing interface text**. It is data, not code, an
 it lives in `locales/en.json` and `locales/es.json`:
 
 - Both catalogs must keep the same key set; `tests/i18n.test.ts` enforces it and
-  also checks that every `error.*` key returned by Rust exists.
+  also checks that every `error.*` and `tray.*` key referenced by Rust exists.
 - Add or change a label in `locales/*.json`, then reference it with `t()` from
   `src/i18n/LocaleContext`. Never hardcode a UI string in a component.
 - Rust commands return catalog **keys** (`error.local_player_unavailable`), never
@@ -23,6 +23,9 @@ it lives in `locales/en.json` and `locales/es.json`:
   is already on screen follows a language change.
 - Anything that is not a catalog key (an OS message, a dynamic `format!`) falls
   through `translate` unchanged, so raw diagnostics are never swallowed.
+- The one surface Rust renders itself is the tray menu: the OS draws it, not a
+  webview, so `src-tauri/src/catalog.rs` embeds both catalogs and resolves the
+  text there. It is the only sanctioned place for Rust to produce catalog text.
 - `logline!` and `logger::log` output stays in English and is not catalogued.
 
 ## Commands
@@ -145,6 +148,14 @@ Prerequisites (once): `rustup target add x86_64-pc-windows-msvc`,
   `open_settings_location`, `begin_drag`, `quit_app`. The settings commands
   persist and re-emit `island://settings`, which both windows listen to.
   `set_language` is the one that changes the interface language.
+- The system tray lives in `src-tauri/src/tray.rs` behind the `tray-icon`
+  cargo feature. Left click toggles the island and must reapply
+  `window_setup::reapply_click_through_styles` after `show()`, exactly like the
+  island's `on_page_load` does. The menu carries the island toggle,
+  Play/Pause, Settings and Quit. Menu event handlers run on the main thread, so
+  `settings_window::open` goes through `tauri::async_runtime::spawn`: calling
+  it inline reproduces the synchronous-command deadlock below. `set_language`
+  calls `tray::rebuild` so the labels follow the language in place.
 - Sync Tauri commands run on the main thread. Commands that create, close or
   reposition windows (`open_settings`, `close_settings`, `reset_position`) must
   be `async`; making them sync makes `WebviewWindowBuilder::build()` wait on the

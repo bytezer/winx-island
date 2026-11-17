@@ -39,8 +39,9 @@ function leafValues(node: unknown, prefix = "", out: [string, unknown][] = []): 
   return out;
 }
 
-/** Every `error.*` key literal written in the Rust sources. */
-function rustErrorKeys(): string[] {
+/** Every catalog key literal written in the Rust sources, by namespace. */
+function rustKeyLiterals(namespace: string): string[] {
+  const pattern = new RegExp(`"(${namespace}\\.[a-z_]+)"`, "g");
   const dir = join(root, "src-tauri/src");
   const keys = new Set<string>();
   const walk = (path: string) => {
@@ -48,7 +49,7 @@ function rustErrorKeys(): string[] {
       const full = join(path, entry.name);
       if (entry.isDirectory()) walk(full);
       else if (entry.name.endsWith(".rs")) {
-        for (const match of readFileSync(full, "utf8").matchAll(/"(error\.[a-z_]+)"/g)) {
+        for (const match of readFileSync(full, "utf8").matchAll(pattern)) {
           keys.add(match[1]);
         }
       }
@@ -80,7 +81,7 @@ test("CATALOG-02: no catalog entry is empty", () => {
 });
 
 test("CATALOG-03: every error key returned by Rust exists in both locales", () => {
-  const keys = rustErrorKeys();
+  const keys = rustKeyLiterals("error");
   assert.ok(keys.length > 10, `expected the Rust error keys to be found, got ${keys.length}`);
   for (const locale of ["en", "es"]) {
     const data = catalog(locale);
@@ -88,6 +89,18 @@ test("CATALOG-03: every error key returned by Rust exists in both locales", () =
       assert.ok(hasKey(locale as "en" | "es", key), `${locale} is missing ${key}`);
     }
     assert.ok(data.error, "catalog has no error section");
+  }
+});
+
+test("CATALOG-03b: every tray key rendered by Rust exists in both locales", () => {
+  const keys = rustKeyLiterals("tray");
+  assert.ok(keys.length >= 5, `expected the Rust tray keys to be found, got ${keys.length}`);
+  for (const locale of ["en", "es"]) {
+    const data = catalog(locale);
+    assert.ok(data.tray, "catalog has no tray section");
+    for (const key of keys) {
+      assert.ok(hasKey(locale as "en" | "es", key), `${locale} is missing ${key}`);
+    }
   }
 });
 

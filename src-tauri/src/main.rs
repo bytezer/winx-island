@@ -3,6 +3,7 @@
 mod audio;
 mod audio_capture;
 mod audio_samples;
+mod catalog;
 mod spectrum;
 mod commands;
 mod drag;
@@ -22,6 +23,7 @@ mod pointer;
 mod settings;
 mod settings_window;
 mod theme;
+mod tray;
 mod shortcuts;
 mod window_setup;
 
@@ -125,6 +127,12 @@ fn main() {
             window_setup::configure(&window);
             let appearance = app_settings.appearance();
             window_setup::place(&window, appearance.offset_x as f64, appearance.offset_y as f64);
+
+            // The tray is the island's only permanent entry point, but a dead
+            // tray must not kill the overlay: the failure is only logged.
+            if let Err(error) = tray::init(&app.handle()) {
+                logline!("tray init failed: {error}");
+            }
 
             // Safety net in case the page load handler never fires.
             let reveal = window.clone();

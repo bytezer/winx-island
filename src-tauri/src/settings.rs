@@ -203,7 +203,6 @@ const SETTINGS_HEADER: &str = r#"# winx-island settings
 
 "#;
 
-
 impl Settings {
     pub fn load() -> Arc<Self> {
         let path = data_dir().join("settings.yaml");
@@ -252,7 +251,10 @@ impl Settings {
     }
 
     pub fn visualizer_enabled(&self) -> bool {
-        self.state.read().map(|file| file.visualizer.enabled).unwrap_or(true)
+        self.state
+            .read()
+            .map(|file| file.visualizer.enabled)
+            .unwrap_or(true)
     }
 
     pub fn entry(&self, id: &str) -> Option<ShortcutEntry> {
@@ -295,7 +297,9 @@ impl Settings {
     /// Makes sure the file exists so the settings location button always has
     /// something to reveal.
     pub fn ensure_file(&self) {
-        let Ok(state) = self.state.read() else { return; };
+        let Ok(state) = self.state.read() else {
+            return;
+        };
         Self::write(&self.path, &state);
     }
 
@@ -352,10 +356,20 @@ impl Settings {
         self.update(|file| file.ui.last_panel_tab = tab.to_string());
     }
 
+    /// Raw `ui.language` override. `None` follows the Windows display language.
+    pub fn language_override(&self) -> Option<String> {
+        self.state
+            .read()
+            .map(|file| file.ui.language.clone())
+            .unwrap_or(None)
+    }
+
     /// `None` clears the override so the Windows display language applies again.
     pub fn set_language(&self, language: Option<&str>) {
         let value = match language {
-            Some(candidate) if crate::i18n::LOCALES.contains(&candidate) => Some(candidate.to_string()),
+            Some(candidate) if crate::i18n::LOCALES.contains(&candidate) => {
+                Some(candidate.to_string())
+            }
             Some(_) => return,
             None => None,
         };
@@ -365,7 +379,10 @@ impl Settings {
     pub fn set_theme(&self, theme: ThemeSettings) -> Result<ThemeSettings, String> {
         theme.validate()?;
         let normalized = theme.normalized();
-        let mut state = self.state.write().map_err(|_| "error.settings_unavailable".to_string())?;
+        let mut state = self
+            .state
+            .write()
+            .map_err(|_| "error.settings_unavailable".to_string())?;
         let mut updated = state.clone();
         updated.theme = normalized.clone();
         Self::persist(&self.path, &updated)?;
@@ -374,7 +391,9 @@ impl Settings {
     }
 
     fn update<F: FnOnce(&mut SettingsFile)>(&self, mutate: F) {
-        let Ok(mut state) = self.state.write() else { return; };
+        let Ok(mut state) = self.state.write() else {
+            return;
+        };
         let mut updated = state.clone();
         mutate(&mut updated);
         match Self::persist(&self.path, &updated) {
@@ -395,11 +414,11 @@ impl Settings {
             fs::create_dir_all(parent).map_err(|error| error.to_string())?;
         }
         let scratch = path.with_extension("yaml.tmp");
-        fs::write(&scratch, format!("{SETTINGS_HEADER}{document}")).map_err(|error| error.to_string())?;
+        fs::write(&scratch, format!("{SETTINGS_HEADER}{document}"))
+            .map_err(|error| error.to_string())?;
         fs::rename(&scratch, path).map_err(|error| error.to_string())?;
         Ok(())
     }
-
 }
 
 pub fn data_dir() -> PathBuf {

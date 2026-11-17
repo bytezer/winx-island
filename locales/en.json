@@ -120,6 +120,13 @@
       "hint": "Applies immediately; it is not part of the draft above."
     }
   },
+  "tray": {
+    "show_island": "Show island",
+    "hide_island": "Hide island",
+    "play_pause": "Play/Pause",
+    "settings": "Settings",
+    "quit": "Quit"
+  },
   "appearance_editor": {
     "loading": "Loading your look…",
     "eyebrow": "WINX ISLAND / YOUR WAY",

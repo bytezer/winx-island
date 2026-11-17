@@ -72,6 +72,9 @@ pub fn set_language(
     }
     settings.set_language(language.as_deref());
     let _ = app.emit("island://settings", settings.view());
+    // The tray menu is drawn by the OS, so its labels are re-resolved to
+    // follow the language change in place.
+    crate::tray::rebuild(&app);
     Ok(())
 }
 

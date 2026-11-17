@@ -30,6 +30,8 @@ and ignores clicks outside the visible pill.
 - One settings window, opened from the gear icon in the panel footer, with
   General, Appearance and About sections. Appearance embeds the full island
   editor with a live preview.
+- System tray icon: left click toggles the island, right click opens a menu
+  with the island toggle, Play/Pause, Settings and Quit.
 - Single instance enforced per session.
 - Automatically hides while a fullscreen app or game is in the foreground.
 
@@ -396,6 +398,17 @@ the field existed loads unchanged.
 - Toast notification mirroring is not implemented: Windows requires package
   identity for the notification listener.
 - `winx-island` is not code signed, so SmartScreen may warn on other machines.
+
+### System tray
+
+The app keeps an icon in the notification area for as long as it runs. Left
+click toggles the island: it brings it back when a fullscreen app or a stray
+drag left it out of sight, and hides it when you want a clean desktop. Right
+click opens a menu with the island toggle, Play/Pause (routed through the same
+media pipeline as the island's own buttons), Settings and Quit.
+
+The menu labels follow the interface language and rebuild the moment it
+changes, including the Show/Hide wording.
 
 ### Interface language
 

@@ -43,6 +43,12 @@ pub fn resolve(override_locale: Option<&str>) -> &'static str {
         .unwrap_or_else(system_locale)
 }
 
+/// Locale a user-facing native surface (the tray) should render right now.
+/// Reads the persisted override, falling back to the Windows display language.
+pub fn active(settings: &crate::settings::Settings) -> &'static str {
+    resolve(settings.language_override().as_deref())
+}
+
 fn supported(candidate: &str) -> Option<&'static str> {
     LOCALES.iter().copied().find(|locale| *locale == candidate)
 }
