@@ -7,6 +7,7 @@ mod spectrum;
 mod commands;
 mod drag;
 mod focus;
+mod i18n;
 mod logger;
 mod media;
 mod media_choice;
@@ -63,6 +64,7 @@ fn main() {
             commands::save_theme,
             commands::open_appearance_editor,
             commands::set_visualizer_enabled,
+            commands::set_language,
             commands::set_panel_tab,
             commands::set_theme,
             commands::set_compact_size,

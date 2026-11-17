@@ -42,9 +42,8 @@ fn show_dialog() -> Result<Vec<String>, String> {
     if error == 0 {
         Ok(vec![])
     } else {
-        Err(format!(
-            "Unable to open the music picker (Windows error {error})"
-        ))
+        crate::logger::log(format!("music picker failed (Windows error {error})"));
+        Err("error.picker_failed".into())
     }
 }
 

@@ -58,6 +58,23 @@ pub fn get_settings(settings: State<'_, Arc<Settings>>) -> crate::settings::Sett
     settings.view()
 }
 
+/// Sets the interface language. `None` yields to the Windows display language.
+#[tauri::command]
+pub fn set_language(
+    language: Option<String>,
+    settings: State<'_, Arc<Settings>>,
+    app: AppHandle,
+) -> Result<(), String> {
+    if let Some(value) = language.as_deref() {
+        if !crate::i18n::LOCALES.contains(&value) {
+            return Err("error.unknown_language".into());
+        }
+    }
+    settings.set_language(language.as_deref());
+    let _ = app.emit("island://settings", settings.view());
+    Ok(())
+}
+
 #[tauri::command]
 pub fn set_visualizer_enabled(enabled: bool, settings: State<'_, Arc<Settings>>, app: AppHandle) {
     settings.set_visualizer_enabled(enabled);
@@ -77,7 +94,8 @@ pub fn set_theme(
     app: AppHandle,
 ) -> Result<(), String> {
     if !crate::settings::is_valid_theme(&theme) {
-        return Err(format!("unknown theme '{theme}'"));
+        crate::logger::log(format!("set_theme rejected unknown theme '{theme}'"));
+        return Err("error.unknown_theme".into());
     }
     settings.set_css_theme(&theme);
     let _ = app.emit("island://settings", settings.view());

@@ -1,5 +1,6 @@
 import { MusicLibraryControls } from "./MusicLibraryControls";
 import { useLevel } from "../hooks/useLevel";
+import { useT } from "../i18n/LocaleContext";
 import { AUDIO_NOISE_FLOOR } from "../lib/visualizer";
 import { invoke } from "@tauri-apps/api/core";
 import type { MediaAction, MediaSnapshot, MusicLibraryActions, PanelTab, Shortcut } from "../types";
@@ -33,6 +34,7 @@ interface PanelViewProps {
 }
 
 function MediaPanel({ media, library, positionMs, visualizer, onAction, onSeek }: PanelViewProps) {
+  const t = useT();
   const systemAudio = useLevel() > AUDIO_NOISE_FLOOR && visualizer;
   return (
     <div className="panel-media">
@@ -42,11 +44,11 @@ function MediaPanel({ media, library, positionMs, visualizer, onAction, onSeek }
           <div className="badge-row">
             <div className="badge">
               <span className={`badge-dot ${media.playing || systemAudio ? "is-live" : ""}`} />
-              {media.available ? (media.playing ? "Playing" : "Paused") : systemAudio ? "System audio" : "Idle"}
+              {media.available ? (media.playing ? t("island.media.playing") : t("island.media.paused")) : systemAudio ? t("island.media.system_audio") : t("island.media.idle")}
             </div>
           </div>
-          <div className="panel-title">{media.available ? media.title || "Unknown track" : systemAudio ? "System audio" : media.sourceSelection ? "Audio de tus aplicaciones" : "Your music, right here"}</div>
-          <div className="meta-sub">{media.available ? media.artist || "Unknown artist" : systemAudio ? "Visualizing Windows output" : media.sourceSelection ? "Reproduce en cualquier app o agrega archivos" : "Choose music from your PC"}</div>
+          <div className="panel-title">{media.available ? media.title || t("island.media.unknown_track") : systemAudio ? t("island.media.system_audio") : media.sourceSelection ? t("island.media.apps_title") : t("island.media.empty_title")}</div>
+          <div className="meta-sub">{media.available ? media.artist || t("island.media.unknown_artist") : systemAudio ? t("island.media.visualizing") : media.sourceSelection ? t("island.media.apps_hint") : t("island.media.empty_hint")}</div>
         </div>
       </div>
 
@@ -73,14 +75,15 @@ interface ShortcutsPanelProps {
 }
 
 function ShortcutsPanel({ shortcuts }: ShortcutsPanelProps) {
+  const t = useT();
   return (
     <div className="panel-shortcuts">
       <div className="shortcuts-head">
-        <span className="shortcuts-title">Shortcuts</span>
+        <span className="shortcuts-title">{t("island.panel.tab_shortcuts")}</span>
         <span className="shortcuts-hint">
           {shortcuts.length > 0
-            ? `${shortcuts.length} defined in settings.yaml`
-            : "No shortcuts defined in settings.yaml"}
+            ? t("island.panel.shortcuts_defined", { count: shortcuts.length })
+            : t("island.panel.no_shortcuts")}
         </span>
       </div>
       <div className="shortcuts-grid">
@@ -107,6 +110,7 @@ export function Panel({
   onSeek,
   onTab,
 }: PanelProps) {
+  const t = useT();
   return (
     <div className="panel">
       {media.art && <div className="panel-backdrop" style={{ backgroundImage: `url(${media.art})` }} />}
@@ -114,7 +118,7 @@ export function Panel({
       <div
         className="panel-tabs"
         role="tablist"
-        aria-label="Panel sections"
+        aria-label={t("island.panel.tabs_group")}
       >
         <button
           type="button"
@@ -127,7 +131,7 @@ export function Panel({
             }
           }}
         >
-          Media
+          {t("island.panel.tab_media")}
         </button>
         <button
           type="button"
@@ -140,7 +144,7 @@ export function Panel({
             }
           }}
         >
-          Shortcuts
+          {t("island.panel.tab_shortcuts")}
         </button>
       </div>
 
@@ -163,8 +167,8 @@ export function Panel({
           <button
             type="button"
             className="ghost-button icon-only"
-            aria-label="Personalizar apariencia"
-            title="Personalizar apariencia"
+            aria-label={t("island.panel.customize")}
+            title={t("island.panel.customize")}
             onClick={(event) => {
               event.stopPropagation();
               void openAppearanceEditor();
@@ -175,8 +179,8 @@ export function Panel({
           <button
             type="button"
             className="ghost-button icon-only"
-            aria-label="Open settings"
-            title="Open settings"
+            aria-label={t("island.panel.open_settings")}
+            title={t("island.panel.open_settings")}
             onClick={(event) => {
               event.stopPropagation();
               void openSettings();
@@ -194,7 +198,7 @@ export function Panel({
             }}
           >
             <span className={`badge-dot ${visualizer ? "is-live" : ""}`} />
-            Visualizer {visualizer ? "On" : "Off"}
+            {visualizer ? t("island.panel.visualizer_on") : t("island.panel.visualizer_off")}
           </button>
           <button
             type="button"
@@ -204,7 +208,7 @@ export function Panel({
               void invoke("quit_app");
             }}
           >
-            Quit
+            {t("island.panel.quit")}
           </button>
         </div>
       </div>

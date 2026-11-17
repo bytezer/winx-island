@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from "react";
+import { useT } from "../i18n/LocaleContext";
 import { formatDuration } from "../lib/format";
 
 interface ProgressBarProps {
@@ -10,6 +11,7 @@ interface ProgressBarProps {
 }
 
 export function ProgressBar({ positionMs, durationMs, enabled, showTimes, onSeek }: ProgressBarProps) {
+  const t = useT();
   const railRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
   const [draft, setDraft] = useState<number | null>(null);
@@ -34,7 +36,7 @@ export function ProgressBar({ positionMs, durationMs, enabled, showTimes, onSeek
         ref={railRef}
         className="progress-rail"
         role="slider"
-        aria-label="Seek"
+        aria-label={t("island.seek")}
         aria-valuemin={0}
         aria-valuemax={Math.round(durationMs / 1000)}
         aria-valuenow={Math.round(displayPosition / 1000)}

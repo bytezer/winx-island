@@ -384,6 +384,40 @@ the field existed loads unchanged.
   identity for the notification listener.
 - `winx-island` is not code signed, so SmartScreen may warn on other machines.
 
+### Interface language
+
+The interface ships in English and Spanish. `locales/en.json` and
+`locales/es.json` are the single source of truth for every user-facing string,
+and both must always expose the same key set. Components resolve labels with
+`t()` from `src/i18n/LocaleContext`; native commands return catalog keys such as
+`error.local_player_unavailable` instead of sentences, so text already on screen
+follows a language change.
+
+By default the language follows the Windows display language (`es-*` becomes
+Spanish, anything else English). To pin it, use the **Language** row in
+Settings → General, or set `ui.language` in `settings.yaml`:
+
+```yaml
+ui:
+  language: es    # en | es; omit the key to follow Windows
+```
+
+A change applies to the island, the settings window and the appearance editor at
+once, with no restart. Anything that is not a catalog key — an OS message, a
+dynamic error — is shown unchanged.
+
+Adding a third language takes three edits: a new `locales/<code>.json` with the
+same keys, the `LOCALES` array in `src-tauri/src/i18n.rs`, and the selector in
+`src/settings/sections/General.tsx`. `tests/i18n.test.ts` fails until the first
+two agree.
+
+Interface language checks:
+
+```bash
+npx --no-install esbuild tests/i18n.test.ts --bundle --platform=node --outfile=node_modules/.cache/winx-i18n-tests.cjs
+node node_modules/.cache/winx-i18n-tests.cjs
+```
+
 ## License
 
 Copyright (C) 2026 bytezer

@@ -1,4 +1,5 @@
 import type { MediaAction, MediaSnapshot } from "../types";
+import { useT } from "../i18n/LocaleContext";
 
 interface TransportProps {
   media: MediaSnapshot;
@@ -53,9 +54,11 @@ function RepeatIcon({ one }: { one: boolean }) {
 }
 
 export function Transport({ media, large, busy = false, onAction }: TransportProps) {
+  const t = useT();
   const local = media.sourceApp === "winx-island.local";
   const repeat = media.repeatMode || "off";
-  const repeatLabel = `Repetición: ${repeat === "one" ? "una canción" : repeat === "all" ? "toda la lista" : "desactivada"}`;
+  const modeKey = repeat === "one" ? "island.transport.repeat_one" : repeat === "all" ? "island.transport.repeat_all" : "island.transport.repeat_off";
+  const repeatLabel = t("island.transport.repeat", { mode: t(modeKey) });
   const stop = (event: React.MouseEvent, action: MediaAction) => {
     event.stopPropagation();
     onAction(action);
@@ -64,7 +67,7 @@ export function Transport({ media, large, busy = false, onAction }: TransportPro
   return (
     <div className={`transport ${large ? "transport-large" : ""}`}>
       {local && <button type="button" className="icon-button mode-button" disabled={busy} onClick={(event) => stop(event, "shuffle")}
-        aria-label="Aleatorio" aria-pressed={media.shuffleEnabled} title={media.shuffleEnabled ? "Aleatorio activado" : "Aleatorio desactivado"}>
+        aria-label={t("island.transport.shuffle")} aria-pressed={media.shuffleEnabled} title={media.shuffleEnabled ? t("island.transport.shuffle_on") : t("island.transport.shuffle_off")}>
         <ShuffleIcon />
       </button>}
       <button
@@ -72,7 +75,7 @@ export function Transport({ media, large, busy = false, onAction }: TransportPro
         className="icon-button"
         disabled={!media.canPrev}
         onClick={(event) => stop(event, "prev")}
-        aria-label="Previous track"
+        aria-label={t("island.transport.previous")}
       >
         <PreviousIcon />
       </button>
@@ -81,7 +84,7 @@ export function Transport({ media, large, busy = false, onAction }: TransportPro
         className={`play-button ${large ? "play-button-large" : ""}`}
         disabled={busy || media.canPlayPause === false}
         onClick={(event) => stop(event, "play_pause")}
-        aria-label={!media.available && !media.sourceSelection ? "Open music files" : media.playing ? "Pause" : "Play"}
+        aria-label={!media.available && !media.sourceSelection ? t("island.transport.open_files") : media.playing ? t("island.transport.pause") : t("island.transport.play")}
       >
         {media.playing ? <PauseIcon large={large} /> : <PlayIcon large={large} />}
       </button>
@@ -90,12 +93,12 @@ export function Transport({ media, large, busy = false, onAction }: TransportPro
         className="icon-button"
         disabled={!media.canNext}
         onClick={(event) => stop(event, "next")}
-        aria-label="Next track"
+        aria-label={t("island.transport.next")}
       >
         <NextIcon />
       </button>
       {local && <button type="button" className="icon-button mode-button" disabled={busy} onClick={(event) => stop(event, "repeat")}
-        aria-label={repeatLabel} aria-pressed={repeat !== "off"} title={`${repeatLabel}. Cambiar modo`}>
+        aria-label={repeatLabel} aria-pressed={repeat !== "off"} title={t("island.transport.repeat_change", { label: repeatLabel })}>
         <RepeatIcon one={repeat === "one"} />
       </button>}
     </div>

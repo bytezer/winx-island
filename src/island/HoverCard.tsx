@@ -1,5 +1,6 @@
 import { MusicLibraryControls, MediaSourceControls } from "./MusicLibraryControls";
 import { useLevel, useSpectrum } from "../hooks/useLevel";
+import { useT } from "../i18n/LocaleContext";
 import { useThemeContext } from "../hooks/useThemeContext";
 import { AUDIO_NOISE_FLOOR } from "../lib/visualizer";
 import type { MediaAction, MediaSnapshot, MusicLibraryActions } from "../types";
@@ -18,6 +19,7 @@ interface HoverCardProps {
 }
 
 export function HoverCard({ media, library, positionMs, visualizer, onAction, onSeek }: HoverCardProps) {
+  const t = useT();
   const systemAudio = useLevel() > AUDIO_NOISE_FLOOR && visualizer;
   const bands = useSpectrum();
   const theme = useThemeContext();
@@ -26,9 +28,9 @@ export function HoverCard({ media, library, positionMs, visualizer, onAction, on
       <div className="hover-main">
         <CoverArt src={media.art} size={78} radius={16} />
         <div className="meta">
-          <div className="meta-title">{media.available ? media.title || "Unknown track" : systemAudio ? "System audio" : media.sourceSelection ? "Audio de tus aplicaciones" : "Your music, right here"}</div>
+          <div className="meta-title">{media.available ? media.title || t("island.media.unknown_track") : systemAudio ? t("island.media.system_audio") : media.sourceSelection ? t("island.media.apps_title") : t("island.media.empty_title")}</div>
           <div className="meta-sub">
-            {media.available ? media.artist || "Unknown artist" : systemAudio ? "Visualizing Windows output" : media.sourceSelection ? "YouTube, Spotify, navegador o archivos locales" : "Choose music from your PC"}
+            {media.available ? media.artist || t("island.media.unknown_artist") : systemAudio ? t("island.media.visualizing") : media.sourceSelection ? t("island.media.apps_hint_short") : t("island.media.empty_hint")}
           </div>
           <MusicLibraryControls media={media} library={library} showSources={false} />
         </div>

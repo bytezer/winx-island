@@ -8,8 +8,22 @@ that are easy to get wrong.
 ## Language
 
 Everything committed to the repository must be in English, regardless of the
-language used in chat: code, identifiers, comments, UI strings, docs, commit
-messages, logs, and PR text.
+language used in chat: code, identifiers, comments, docs, commit messages, logs,
+and PR text.
+
+The single exception is **user-facing interface text**. It is data, not code, and
+it lives in `locales/en.json` and `locales/es.json`:
+
+- Both catalogs must keep the same key set; `tests/i18n.test.ts` enforces it and
+  also checks that every `error.*` key returned by Rust exists.
+- Add or change a label in `locales/*.json`, then reference it with `t()` from
+  `src/i18n/LocaleContext`. Never hardcode a UI string in a component.
+- Rust commands return catalog **keys** (`error.local_player_unavailable`), never
+  translated sentences. The frontend resolves them at render time, so text that
+  is already on screen follows a language change.
+- Anything that is not a catalog key (an OS message, a dynamic `format!`) falls
+  through `translate` unchanged, so raw diagnostics are never swallowed.
+- `logline!` and `logger::log` output stays in English and is not catalogued.
 
 ## Commands
 
@@ -28,8 +42,10 @@ Prerequisites (once): `rustup target add x86_64-pc-windows-msvc`,
   Add `--debug` for the fast iteration build. Without it the output is
   `src-tauri/target/x86_64-pc-windows-msvc/release/winx-island.exe`; with it,
   the equivalent `debug/` path.
-- There is no test suite, JS linter, or formatter config. `npm run build` and
-  the cargo check above are the available verification steps.
+- There is no JS linter or formatter config. Verification is `npm run build`,
+  the cargo check above, and the standalone suites in `tests/` (see the
+  "Regression checks" sections of the README). Run the relevant suite before
+  shipping a UI or media change; several need Windows and are documented as such.
 - `npm run dev` serves only the web UI on strict port 5274; Tauri IPC and media
   events are unavailable in a browser. To exercise the real app, build and run
   the `.exe` as above.
@@ -53,16 +69,20 @@ Prerequisites (once): `rustup target add x86_64-pc-windows-msvc`,
 - The window is built imperatively in `src-tauri/src/main.rs`;
   `tauri.conf.json` intentionally has `app.windows: []`. Window flags belong in
   Rust, not in the Tauri config.
-- There are two windows. `island` is the overlay described below. `settings` is
-  a normal, focusable 693x420 window created on demand by
+- There are three windows. `island` is the overlay described below. `settings`
+  is a normal, focusable 693x420 window created on demand by
   `src-tauri/src/settings_window.rs` (label `settings`, the same `index.html`,
   `window.__winxSettingsWindow = true` injected so the frontend renders
-  `src/settings/SettingsApp.tsx`). It must never be passed to
-  `pointer.rs`, `window_setup::configure` or any click-through / no-activate
-  logic: those only target `island`. It is destroyed on close and recreated by
-  the next `open_settings`. Both windows share
-  `src-tauri/capabilities/default.json`, so new window permissions must stay
-  valid for both.
+  `src/settings/SettingsApp.tsx`). `appearance` is the richer appearance editor,
+  created by `open_appearance_editor` in `commands.rs` with
+  `index.html?view=appearance`, which `src/main.tsx` maps to
+  `src/settings/AppearanceEditor.tsx`. Neither of the editor windows may be
+  passed to `pointer.rs`, `window_setup::configure` or any click-through /
+  no-activate logic: those only target `island`. Both are destroyed on close and
+  recreated by the next open. `island` and `settings` share
+  `src-tauri/capabilities/default.json`; `appearance` has its own
+  `capabilities/appearance.json`. Keep every new permission valid for the window
+  that needs it.
 - Creating the `settings` webview breaks the transparent island's WebView2
   composition on Windows: the pill keeps its background but paints no content.
   `settings_window.rs` therefore hides and reloads the island on first creation;
@@ -83,12 +103,15 @@ Prerequisites (once): `rustup target add x86_64-pc-windows-msvc`,
   snapshot; `get_media_snapshot` and `useMedia` use it to restore media after
   the island reload without waiting for a change event.
 - The visualizer spectrum is WASAPI loopback on the default render endpoint
-  (`src-tauri/src/audio/capture.rs`), analysed by an in-repo radix-2 FFT
-  (`src-tauri/src/audio/spectrum.rs`). The audio thread owns the capture and
-  analyzer, re-resolves the device periodically and emits 24 bands on
-  `island://spectrum` only while the island is visible and
-  `visualizer.enabled` is on; views aggregate those 24 bands themselves
-  (`useSpectrum`). Do not add an FFT dependency or a per-view IPC command.
+  (`src-tauri/src/audio.rs` drives the thread, `audio_capture.rs` owns the
+  stream, `audio_samples.rs` decodes Float32/PCM16/24/32). `spectrum.rs` runs an
+  in-repo radix-2 FFT over 2048 samples and folds it into `BAND_COUNT` (7)
+  log-spaced bands. The thread re-resolves the device periodically and emits
+  `island://level` with `{ level, bands }` only while the island is visible and
+  `visualizer.enabled` is on. The frontend consumes it in
+  `src/hooks/useLevel.ts` (`useLevel`, `useSpectrum`) and renders through
+  `src/lib/spectrum-renderer.ts` + `useSpectrumAnimation.tsx`. Do not add an FFT
+  dependency or a per-view IPC command.
 - Settings live in `%APPDATA%\winx-island\settings.yaml`, are loaded once at
   startup into `Settings`, and are written only when a value changes
   (visualizer toggle, panel tab, theme, pill size, drag offsets, reset). Hand
@@ -108,12 +131,14 @@ Prerequisites (once): `rustup target add x86_64-pc-windows-msvc`,
   `--shell-surface` token, not `--surface` (which is translucent in glass and
   would let WebView2's white page show through).
 - IPC surface: `set_interactive_rect`, `media_control`, `get_media_snapshot`,
-  `get_settings`,
-  `set_visualizer_enabled`, `set_panel_tab`, `set_theme`, `set_compact_size`,
-  `reset_position`, `open_settings`, `close_settings`, `app_version`,
-  `open_shortcut`, `open_settings_location`, `begin_drag`, `quit_app`. The
-  settings commands persist and re-emit `island://settings`, which both windows
-  listen to.
+  `select_media_source`, `open_music_files`, `add_music_folders`,
+  `use_system_media`, `refresh_media`, `get_settings`, `save_theme`,
+  `open_appearance_editor`, `set_visualizer_enabled`, `set_panel_tab`,
+  `set_language`, `set_theme`, `set_compact_size`, `reset_position`,
+  `open_settings`, `close_settings`, `app_version`, `open_shortcut`,
+  `open_settings_location`, `begin_drag`, `quit_app`. The settings commands
+  persist and re-emit `island://settings`, which all three windows listen to.
+  `set_language` is the one that changes the interface language.
 - Sync Tauri commands run on the main thread. Commands that create, close or
   reposition windows (`open_settings`, `close_settings`, `reset_position`) must
   be `async`; making them sync makes `WebviewWindowBuilder::build()` wait on the

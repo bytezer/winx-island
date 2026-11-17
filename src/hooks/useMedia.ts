@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { toUiError, type UiError } from "../i18n/errors";
 import type { MediaAction, MediaSnapshot, MusicLibraryActions } from "../types";
 
 const EMPTY: MediaSnapshot = {
@@ -29,7 +30,7 @@ const EMPTY: MediaSnapshot = {
 export function useMedia() {
   const [media, setMedia] = useState<MediaSnapshot>(EMPTY);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<UiError | null>(null);
   const pickerOpen = useRef(false);
   const receivedAt = useRef<number>(performance.now());
   const hasEvent = useRef(false);
@@ -59,7 +60,7 @@ export function useMedia() {
     void unsubscribe.then(() => {
       if (!disposed) return invoke("refresh_media");
     }).catch((reason: unknown) => {
-      if (!disposed) setError(String(reason));
+      if (!disposed) setError(toUiError(reason));
     });
     return () => {
       disposed = true;
@@ -75,10 +76,10 @@ export function useMedia() {
     try {
       const result = await invoke<boolean | { found: number; skippedFolders: number } | null>(command);
       if (result && typeof result === "object" && result.skippedFolders > 0) {
-        setError(`Music imported; ${result.skippedFolders} folders could not be read.`);
+        setError({ key: "error.folders_skipped", params: { count: result.skippedFolders } });
       }
     } catch (reason) {
-      setError(String(reason));
+      setError(toUiError(reason));
     } finally {
       pickerOpen.current = false;
       setBusy(false);
@@ -93,14 +94,14 @@ export function useMedia() {
     try {
       await invoke("use_system_media");
     } catch (reason) {
-      setError(String(reason));
+      setError(toUiError(reason));
     }
   }, []);
 
   const onSource = useCallback(async (id: string) => {
     setError(null);
     try { await invoke("select_media_source", { id }); }
-    catch (reason) { setError(String(reason)); }
+    catch (reason) { setError(toUiError(reason)); }
   }, []);
 
   const onAction = useCallback(async (action: MediaAction) => {
@@ -112,7 +113,7 @@ export function useMedia() {
     try {
       await sendMediaAction(action);
     } catch (reason) {
-      setError(String(reason));
+      setError(toUiError(reason));
     }
   }, [media.available, media.sourceSelection, onFolders]);
 
@@ -121,13 +122,14 @@ export function useMedia() {
     try {
       await seekTo(positionMs);
     } catch (reason) {
-      setError(String(reason));
+      setError(toUiError(reason));
     }
   }, []);
 
   const library: MusicLibraryActions = {
     busy,
-    error: error ?? media.playbackError,
+    // Native errors arrive as catalog keys; `translate` leaves anything else alone.
+    error: error ?? (media.playbackError ? { key: media.playbackError } : null),
     onOpen,
     onFolders,
     onSystem,

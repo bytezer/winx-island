@@ -93,14 +93,14 @@ async fn poll_loop(
                     selection = "local".into();
                     match local.as_mut() {
                         Some(player) => player.open(paths).await.map_err(|error| error.to_string()),
-                        None => Err("El reproductor local no está disponible.".into()),
+                        None => Err("error.local_player_unavailable".into()),
                     }
                 }
                 Command::AddFiles(paths) => {
                     selection = "local".into();
                     match local.as_mut() {
                         Some(player) => player.add(paths).await.map_err(|error| error.to_string()),
-                        None => Err("El reproductor local no está disponible.".into()),
+                        None => Err("error.local_player_unavailable".into()),
                     }
                 }
                 Command::UseSystem => {
@@ -142,7 +142,9 @@ async fn poll_loop(
         if let Some(snapshot) = local_snapshot.as_ref() {
             sources.push(MediaSource {
                 id: "local".into(),
-                label: "Archivos locales".into(),
+                // Key, not text: the frontend resolves it, and app labels
+                // such as "Spotify" pass through `t()` unchanged.
+                label: "island.library.source_local".into(),
                 title: snapshot.title.clone(),
                 playing: snapshot.playing,
             });
@@ -202,11 +204,11 @@ async fn select_source(
         let player = local
             .as_mut()
             .filter(|player| player.has_tracks())
-            .ok_or("Primero agrega música local.")?;
+            .ok_or("error.add_music_first")?;
         player.select().await.map_err(|error| error.to_string())?;
     } else if id != "auto" {
         if id != "system" && !system.entries.iter().any(|entry| entry.id == id) {
-            return Err("La fuente seleccionada ya no está disponible.".into());
+            return Err("error.source_unavailable".into());
         }
         if let Some(player) = local.as_mut() {
             player.use_system().map_err(|error| error.to_string())?;
@@ -226,7 +228,7 @@ async fn route_action(
     if selected == "local" {
         local
             .as_mut()
-            .ok_or("El reproductor local no está disponible.")?
+            .ok_or("error.local_player_unavailable")?
             .control(action, position)
             .await
             .map_err(|error| error.to_string())

@@ -3,6 +3,7 @@ import { createSpectrumAnimation } from "./lib/spectrum-renderer";
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
+import { LocaleProvider } from "./i18n/LocaleContext";
 import { ThemeContext } from "./hooks/useThemeContext";
 import { useTheme } from "./hooks/useTheme";
 import { normalizeTheme, themeVariables, themeAccent } from "./lib/theme";
@@ -36,7 +37,7 @@ const forcedPanelTab: PanelTab | undefined = (() => {
 export default function App() {
   const spectrumAnimation = useRef(createSpectrumAnimation());
   const { media, receivedAt, library, onAction, onSeek } = useMedia();
-  const { visualizerEnabled, appearance, theme: savedTheme, lastPanelTab, shortcuts } = useSettings();
+  const { visualizerEnabled, appearance, theme: savedTheme, language, lastPanelTab, shortcuts } = useSettings();
   const theme = useMemo(() => normalizeTheme(savedTheme), [savedTheme]);
   useTheme(appearance.theme);
   const inside = usePointerInside();
@@ -113,6 +114,7 @@ export default function App() {
   const clock = useMemo(() => formatClock(now), [now]);
 
   return (
+    <LocaleProvider language={language}>
     <ThemeContext.Provider value={theme}>
     <SpectrumAnimationContext.Provider value={spectrumAnimation}>
     <div className="canvas">
@@ -175,5 +177,6 @@ export default function App() {
     </div>
     </SpectrumAnimationContext.Provider>
     </ThemeContext.Provider>
+    </LocaleProvider>
   );
 }

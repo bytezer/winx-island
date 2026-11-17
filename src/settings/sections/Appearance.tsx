@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { changeCompactSize, changeTheme, resetPosition } from "../../hooks/useSettings";
-import { THEMES, THEME_LABELS } from "../../hooks/useTheme";
+import { THEMES } from "../../hooks/useTheme";
+import { useT } from "../../i18n/LocaleContext";
 import type { Appearance as AppearanceSettings } from "../../types";
 
 const MIN_WIDTH = 100;
@@ -21,6 +22,8 @@ interface AppearanceProps {
 }
 
 export function Appearance({ appearance }: AppearanceProps) {
+  const t = useT();
+
   // Local draft for the sliders. It starts from the persisted values, but the
   // first native snapshot can arrive after mount (useSettings renders DEFAULTS
   // first), so it is treated as provisional until the user touches a slider.
@@ -113,16 +116,20 @@ export function Appearance({ appearance }: AppearanceProps) {
   return (
     <section className="settings-section">
       <header className="settings-section-head">
-        <h2>Appearance</h2>
-        <p>Colour theme and the size of the collapsed pill.</p>
+        <h2>{t("settings.appearance.title")}</h2>
+        <p>{t("settings.appearance.subtitle")}</p>
       </header>
 
       <div className="settings-card">
         <div className="settings-row-text">
-          <span className="settings-row-title">Theme</span>
-          <span className="settings-row-hint">Applies to the island and this window.</span>
+          <span className="settings-row-title">{t("settings.appearance.theme")}</span>
+          <span className="settings-row-hint">{t("settings.appearance.theme_hint")}</span>
         </div>
-        <div className="settings-theme-grid" role="radiogroup" aria-label="Theme">
+        <div
+          className="settings-theme-grid"
+          role="radiogroup"
+          aria-label={t("settings.appearance.theme")}
+        >
           {THEMES.map((theme) => (
             <button
               key={theme}
@@ -133,7 +140,7 @@ export function Appearance({ appearance }: AppearanceProps) {
               onClick={() => void changeTheme(theme)}
             >
               <span className={`settings-swatch settings-swatch-${theme}`} />
-              {THEME_LABELS[theme]}
+              {t(`settings.theme_names.${theme}`)}
             </button>
           ))}
         </div>
@@ -141,21 +148,21 @@ export function Appearance({ appearance }: AppearanceProps) {
 
       <div className="settings-card">
         <div className="settings-row-text">
-          <span className="settings-row-title">Pill size</span>
-          <span className="settings-row-hint">The hover card and panel keep their own size.</span>
+          <span className="settings-row-title">{t("settings.appearance.pill_size")}</span>
+          <span className="settings-row-hint">{t("settings.appearance.pill_size_hint")}</span>
         </div>
 
         <div className="settings-size-grid">
           <div className="settings-size-sliders">
             <div className="settings-slider">
-              <span className="settings-slider-label">Width</span>
+              <span className="settings-slider-label">{t("settings.appearance.width")}</span>
               <input
                 type="range"
                 min={MIN_WIDTH}
                 max={MAX_WIDTH}
                 step={1}
                 value={width}
-                aria-label="Pill width"
+                aria-label={t("settings.appearance.width")}
                 onChange={(event) => updateWidth(Number(event.target.value))}
                 onPointerUp={commit}
                 onKeyUp={commit}
@@ -165,14 +172,14 @@ export function Appearance({ appearance }: AppearanceProps) {
             </div>
 
             <div className="settings-slider">
-              <span className="settings-slider-label">Height</span>
+              <span className="settings-slider-label">{t("settings.appearance.height")}</span>
               <input
                 type="range"
                 min={MIN_HEIGHT}
                 max={MAX_HEIGHT}
                 step={1}
                 value={height}
-                aria-label="Pill height"
+                aria-label={t("settings.appearance.height")}
                 onChange={(event) => updateHeight(Number(event.target.value))}
                 onPointerUp={commit}
                 onKeyUp={commit}
@@ -207,17 +214,15 @@ export function Appearance({ appearance }: AppearanceProps) {
       <div className="settings-card">
         <div className="settings-row">
           <div className="settings-row-text">
-            <span className="settings-row-title">Position</span>
-            <span className="settings-row-hint">
-              Move the island back to the top centre of the primary display.
-            </span>
+            <span className="settings-row-title">{t("settings.appearance.position")}</span>
+            <span className="settings-row-hint">{t("settings.appearance.position_hint")}</span>
           </div>
           <button
             type="button"
             className="settings-button"
             onClick={() => void resetPosition()}
           >
-            Reset position
+            {t("settings.appearance.reset_position")}
           </button>
         </div>
       </div>

@@ -85,7 +85,7 @@ impl SystemMedia {
             .ok_or_else(|| {
                 windows::core::Error::new(
                     windows::core::HRESULT(0x80070490u32 as i32),
-                    "La fuente ya no está disponible.",
+                    "error.source_unavailable",
                 )
             })?;
         let mut snapshot = entry.snapshot.clone();
@@ -106,7 +106,7 @@ impl SystemMedia {
             .entries
             .iter()
             .find(|entry| entry.id == id)
-            .ok_or("La fuente seleccionada se cerró.")?;
+            .ok_or("error.source_closed")?;
         control_session(&entry.session, action, position_ms, entry.snapshot.playing)
             .await
             .map_err(|error| error.to_string())
@@ -246,7 +246,7 @@ async fn control_session(
     } else {
         Err(windows::core::Error::new(
             windows::core::HRESULT(0x80004001u32 as i32),
-            "La aplicación no admite este control multimedia.",
+            "error.no_session",
         ))
     }
 }
@@ -260,7 +260,7 @@ pub fn media_key(action: &str) -> Result<(), String> {
         "play_pause" => VK_MEDIA_PLAY_PAUSE,
         "next" => VK_MEDIA_NEXT_TRACK,
         "prev" => VK_MEDIA_PREV_TRACK,
-        _ => return Err("No hay una sesión que permita este control.".into()),
+        _ => return Err("error.no_session".into()),
     };
     let down = INPUT {
         r#type: INPUT_KEYBOARD,
@@ -284,7 +284,7 @@ pub fn media_key(action: &str) -> Result<(), String> {
     if unsafe { SendInput(&[down, up], std::mem::size_of::<INPUT>() as i32) } == 2 {
         Ok(())
     } else {
-        Err("Windows no pudo enviar la tecla multimedia.".into())
+        Err("error.media_key_failed".into())
     }
 }
 

@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { fetchAppVersion, revealSettings } from "../../hooks/useSettings";
+import { useT } from "../../i18n/LocaleContext";
 
 export function About() {
+  const t = useT();
   const [version, setVersion] = useState<string | null>(null);
 
   useEffect(() => {
@@ -22,8 +24,8 @@ export function About() {
   return (
     <section className="settings-section">
       <header className="settings-section-head">
-        <h2>About</h2>
-        <p>A Dynamic Island style media overlay for Windows 11.</p>
+        <h2>{t("settings.about.title")}</h2>
+        <p>{t("settings.about.subtitle")}</p>
       </header>
 
       <div className="settings-card">
@@ -32,43 +34,37 @@ export function About() {
             <span className="settings-row-title">
               winx-island{version ? ` v${version}` : ""}
             </span>
-            <span className="settings-row-hint">
-              Settings live in %APPDATA%\winx-island\settings.yaml. Shortcut edits require a
-              restart; every other setting is saved immediately.
-            </span>
+            <span className="settings-row-hint">{t("settings.about.settings_hint")}</span>
           </div>
           <button
             type="button"
             className="settings-button"
             onClick={() => void revealSettings()}
           >
-            Open settings.yaml
+            {t("settings.about.open_settings_file")}
           </button>
         </div>
       </div>
 
       <div className="settings-card">
         <div className="settings-row-text">
-          <span className="settings-row-title">License</span>
-          <span className="settings-row-hint">
-            GNU General Public License v2.0 or later (GPL-2.0-or-later). This program is free
-            software: you may redistribute and modify it under the same terms, without any warranty.
-          </span>
+          <span className="settings-row-title">{t("settings.about.license")}</span>
+          <span className="settings-row-hint">{t("settings.about.license_text")}</span>
         </div>
       </div>
 
       <div className="settings-card">
         <div className="settings-row">
           <div className="settings-row-text">
-            <span className="settings-row-title">Quit</span>
-            <span className="settings-row-hint">Stops the overlay and closes this window.</span>
+            <span className="settings-row-title">{t("settings.about.quit")}</span>
+            <span className="settings-row-hint">{t("settings.about.quit_hint")}</span>
           </div>
           <button
             type="button"
             className="settings-button is-danger"
             onClick={() => void invoke("quit_app")}
           >
-            Quit winx-island
+            {t("settings.about.quit_button")}
           </button>
         </div>
       </div>

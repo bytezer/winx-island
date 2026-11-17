@@ -14,6 +14,8 @@ const DEFAULTS: SettingsState = {
     theme: "midnight",
   },
   theme: DEFAULT_THEME,
+  language: "en",
+  languageOverride: null,
   lastPanelTab: "media",
   shortcuts: [],
 };
@@ -86,4 +88,9 @@ export async function revealSettings() {
 
 export async function openAppearanceEditor() {
   await invoke("open_appearance_editor");
+}
+
+/** `null` clears the override and follows the Windows display language. */
+export async function changeLanguage(language: string | null) {
+  await invoke("set_language", { language });
 }

@@ -84,13 +84,13 @@ impl ThemeSettings {
 
     pub fn validate(&self) -> Result<(), String> {
         if !["smooth", "segmented", "dots"].contains(&self.bar_style.as_str()) {
-            return Err("Selecciona un estilo de barras válido.".into());
+            return Err("error.invalid_bar_style".into());
         }
         if !["horizontal", "vertical"].contains(&self.gradient_direction.as_str()) {
-            return Err("Selecciona una dirección de degradado válida.".into());
+            return Err("error.invalid_gradient_direction".into());
         }
         if !["rgb", "gradient", "solid"].contains(&self.color_mode.as_str()) {
-            return Err("Selecciona un modo de color válido.".into());
+            return Err("error.invalid_color_mode".into());
         }
         if [
             &self.background_color,
@@ -103,7 +103,7 @@ impl ThemeSettings {
         .iter()
         .any(|color| !valid_color(color))
         {
-            return Err("Usa colores en formato #RRGGBB.".into());
+            return Err("error.invalid_color_format".into());
         }
         Ok(())
     }

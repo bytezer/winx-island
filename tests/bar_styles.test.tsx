@@ -4,6 +4,8 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { DEFAULT_THEME, CLASSIC_SPECTRUM, normalizeTheme } from "../src/lib/theme";
 import { SpectrumContext } from "./helpers/spectrum-context";
+import { LocaleProvider } from "../src/i18n/LocaleContext";
+import { translate } from "../src/i18n/translate";
 import { drawSpectrum, advanceSpectrumFrame } from "../src/lib/spectrum-renderer";
 import { SpectrumBars } from "../src/island/Waveform";
 
@@ -74,13 +76,29 @@ test("BARS-06: disabling visualization also disables the peak animation", () => 
 test("BARS-07: the editor exposes style, gradient direction and peak controls", async () => {
   const { AppearanceStudio } = await import("../src/settings/AppearanceEditor");
   const initial = normalizeTheme({ ...DEFAULT_THEME, ...CLASSIC_SPECTRUM });
-  const html = renderToStaticMarkup(createElement(AppearanceStudio, {
-    initial,
-    appearance: { compactWidth: 132, compactHeight: 40, offsetX: 0, offsetY: 0 },
-    onClose: async () => {},
-  }));
-  for (const text of ["Continuas", "Segmentos", "Puntos", "Clásico con picos", "Retención del pico", "Velocidad de caída", "Por altura"]) {
-    assert.ok(html.includes(text));
+  const html = renderToStaticMarkup(
+    createElement(
+      LocaleProvider,
+      { language: "en" },
+      createElement(AppearanceStudio, {
+        initial,
+        appearance: { compactWidth: 132, compactHeight: 40, offsetX: 0, offsetY: 0 },
+        onClose: async () => {},
+      }),
+    ),
+  );
+  // Labels come from the catalog: editing a translation must not break this.
+  const en = (key: string) => translate("en", key);
+  for (const key of [
+    "appearance_editor.bar_smooth",
+    "appearance_editor.bar_segmented",
+    "appearance_editor.bar_dots",
+    "appearance_editor.classic_preset",
+    "appearance_editor.peak_hold",
+    "appearance_editor.peak_gravity",
+    "appearance_editor.gradient_vertical",
+  ]) {
+    assert.ok(html.includes(en(key)), `${key} (${en(key)}) missing from the editor markup`);
   }
   assert.match(html, /data-style="segmented"/);
   assert.match(html, /<canvas/);

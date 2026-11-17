@@ -485,3 +485,34 @@
     transition-duration: 1ms;
   }
 }
+
+/* ------------------------------------------------------------- language -- */
+
+/* Segmented control; the active option matches the theme swatch treatment. */
+.settings-lang {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-raised);
+  flex: none;
+}
+
+.settings-lang-option {
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.settings-lang-option[aria-checked="true"] {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--border);
+}

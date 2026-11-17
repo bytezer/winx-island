@@ -1,17 +1,18 @@
 import type { ReactNode } from "react";
+import { useT } from "../i18n/LocaleContext";
 
 export type SettingsSection = "general" | "appearance" | "about";
 
 interface NavItem {
   id: SettingsSection;
-  label: string;
+  labelKey: string;
   icon: ReactNode;
 }
 
 const NAV_ITEMS: NavItem[] = [
   {
     id: "general",
-    label: "General",
+    labelKey: "settings.nav_general",
     icon: (
       <svg viewBox="0 0 24 24" width={16} height={16} aria-hidden="true">
         <path
@@ -28,7 +29,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     id: "appearance",
-    label: "Appearance",
+    labelKey: "settings.nav_appearance",
     icon: (
       <svg viewBox="0 0 24 24" width={16} height={16} aria-hidden="true">
         <circle cx="12" cy="12" r="8.2" fill="none" stroke="currentColor" strokeWidth="1.4" />
@@ -38,7 +39,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     id: "about",
-    label: "About",
+    labelKey: "settings.nav_about",
     icon: (
       <svg viewBox="0 0 24 24" width={16} height={16} aria-hidden="true">
         <circle cx="12" cy="12" r="8.2" fill="none" stroke="currentColor" strokeWidth="1.4" />
@@ -55,8 +56,10 @@ interface SettingsNavProps {
 }
 
 export function SettingsNav({ active, onSelect }: SettingsNavProps) {
+  const t = useT();
+
   return (
-    <nav className="settings-nav" aria-label="Settings sections">
+    <nav className="settings-nav" aria-label={t("settings.nav_group")}>
       {NAV_ITEMS.map((item) => (
         <button
           key={item.id}
@@ -66,7 +69,7 @@ export function SettingsNav({ active, onSelect }: SettingsNavProps) {
           onClick={() => onSelect(item.id)}
         >
           {item.icon}
-          {item.label}
+          {t(item.labelKey)}
         </button>
       ))}
     </nav>

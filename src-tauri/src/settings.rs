@@ -41,12 +41,15 @@ impl Default for VisualizerSettings {
 #[serde(default, rename_all = "camelCase")]
 pub struct UiSettings {
     pub last_panel_tab: String,
+    /// Interface language override. `None` follows the Windows display language.
+    pub language: Option<String>,
 }
 
 impl Default for UiSettings {
     fn default() -> Self {
         Self {
             last_panel_tab: PANEL_TAB_MEDIA.to_string(),
+            language: None,
         }
     }
 }
@@ -161,6 +164,10 @@ pub struct SettingsView {
     pub visualizer_enabled: bool,
     pub appearance: AppearanceSettings,
     pub theme: ThemeSettings,
+    /// Locale actually in use, resolved from the override and the system.
+    pub language: String,
+    /// Raw preference: `null` means "follow the system language".
+    pub language_override: Option<String>,
     pub last_panel_tab: String,
     pub shortcuts: Vec<ShortcutView>,
 }
@@ -185,6 +192,8 @@ const SETTINGS_HEADER: &str = r#"# winx-island settings
 #   running, otherwise the tile is drawn in red until it is.
 # - The grid scrolls, so any number of tiles works.
 # - "ui.lastPanelTab" is one of: media, shortcuts.
+# - "ui.language" is one of: en, es. Omit it to follow the Windows
+#   display language.
 # - "visualizer.enabled" drives the spectrum bars.
 # - "theme" stores the appearance editor colors and corner roundness.
 # - "appearance.compactWidth" / "compactHeight" size the collapsed pill.
@@ -266,6 +275,8 @@ impl Settings {
             visualizer_enabled: file.visualizer.enabled,
             appearance: file.appearance.clamped(),
             theme: file.theme.normalized(),
+            language: crate::i18n::resolve(file.ui.language.as_deref()).to_string(),
+            language_override: file.ui.language.clone(),
             last_panel_tab: file.ui.last_panel_tab.clone(),
             shortcuts: file
                 .shortcuts
@@ -341,10 +352,20 @@ impl Settings {
         self.update(|file| file.ui.last_panel_tab = tab.to_string());
     }
 
+    /// `None` clears the override so the Windows display language applies again.
+    pub fn set_language(&self, language: Option<&str>) {
+        let value = match language {
+            Some(candidate) if crate::i18n::LOCALES.contains(&candidate) => Some(candidate.to_string()),
+            Some(_) => return,
+            None => None,
+        };
+        self.update(|file| file.ui.language = value);
+    }
+
     pub fn set_theme(&self, theme: ThemeSettings) -> Result<ThemeSettings, String> {
         theme.validate()?;
         let normalized = theme.normalized();
-        let mut state = self.state.write().map_err(|_| "No se pudieron abrir los ajustes.".to_string())?;
+        let mut state = self.state.write().map_err(|_| "error.settings_unavailable".to_string())?;
         let mut updated = state.clone();
         updated.theme = normalized.clone();
         Self::persist(&self.path, &updated)?;

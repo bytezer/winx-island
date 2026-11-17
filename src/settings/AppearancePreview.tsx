@@ -8,10 +8,12 @@ import { CoverArt } from "../island/CoverArt";
 import { SpectrumBars } from "../island/Waveform";
 import { Transport } from "../island/Transport";
 import { ProgressBar } from "../island/ProgressBar";
+import { useT } from "../i18n/LocaleContext";
 import type { Appearance, MediaSnapshot, ThemeSettings, View } from "../types";
 
-const DEMO: MediaSnapshot = {
-  available: true, title: "Tu próxima canción", artist: "Tu biblioteca", album: "",
+/** Demo track without its copy; the title and artist are localized in the component. */
+const DEMO: Omit<MediaSnapshot, "title" | "artist"> = {
+  available: true, album: "",
   playing: true, positionMs: 82_000, durationMs: 220_000,
   canNext: false, canPrev: false, canSeek: false, art: null,
   sourceApp: "winx-island.local", queueIndex: 0, queueLength: 1, playbackError: null, shuffleEnabled: false, repeatMode: "off",
@@ -25,11 +27,13 @@ interface AppearancePreviewProps {
 }
 
 export function AppearancePreview({ appearance, theme, bands, view }: AppearancePreviewProps) {
+  const t = useT();
   const animation = useRef(createSpectrumAnimation());
   const stage = useRef<HTMLDivElement>(null);
   const [bounds, setBounds] = useState({ width: 350, height: 330 });
   const box = layoutFor(appearance, theme.islandRoundness)[view];
   const scale = Math.min(view === "compact" ? 1.8 : 1, (bounds.width - 48) / box.width, (bounds.height - 48) / box.height);
+  const demo: MediaSnapshot = { ...DEMO, title: t("appearance_editor.demo_title"), artist: t("appearance_editor.demo_artist") };
 
   useEffect(() => {
     if (!stage.current) return;
@@ -66,10 +70,10 @@ export function AppearancePreview({ appearance, theme, bands, view }: Appearance
             <div className="hover-main">
               <CoverArt src={null} size={78} radius={16} />
               <div className="meta">
-                <div className="meta-title">{DEMO.title}</div>
-                <div className="meta-sub">{DEMO.artist}</div>
+                <div className="meta-title">{demo.title}</div>
+                <div className="meta-sub">{demo.artist}</div>
               </div>
-              <Transport media={DEMO} busy onAction={() => {}} />
+              <Transport media={demo} busy onAction={() => {}} />
             </div>
             <div className="hover-bottom">
               <ProgressBar positionMs={82_000} durationMs={220_000} enabled={false} showTimes onSeek={() => {}} />
@@ -82,14 +86,14 @@ export function AppearancePreview({ appearance, theme, bands, view }: Appearance
               <div className="panel-header">
                 <CoverArt src={null} size={96} radius={18} />
                 <div className="meta">
-                  <div className="badge"><span className="badge-dot is-live" />Playing</div>
-                  <div className="panel-title">{DEMO.title}</div>
-                  <div className="meta-sub">{DEMO.artist}</div>
+                  <div className="badge"><span className="badge-dot is-live" />{t("island.media.playing")}</div>
+                  <div className="panel-title">{demo.title}</div>
+                  <div className="meta-sub">{demo.artist}</div>
                 </div>
               </div>
               <ProgressBar positionMs={82_000} durationMs={220_000} enabled={false} showTimes onSeek={() => {}} />
               <div className="panel-transport">
-                <Transport media={DEMO} large busy onAction={() => {}} />
+                <Transport media={demo} large busy onAction={() => {}} />
                 <div className="mini-visualizer">{visualizer}</div>
               </div>
             </div>

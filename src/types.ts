@@ -1,3 +1,5 @@
+import type { UiError } from "./i18n/errors";
+
 export interface MediaSource {
   id: string;
   label: string;
@@ -61,13 +63,17 @@ export interface SettingsState {
   visualizerEnabled: boolean;
   appearance: Appearance;
   theme: ThemeSettings;
+  /** Locale in use, already resolved by the native side ("en" | "es"). */
+  language: string;
+  /** Raw preference; null follows the Windows display language. */
+  languageOverride: string | null;
   lastPanelTab: PanelTab;
   shortcuts: Shortcut[];
 }
 
 export interface MusicLibraryActions {
   busy: boolean;
-  error: string | null;
+  error: UiError | null;
   onOpen: () => void;
   onFolders: () => void;
   onSystem: () => void;
