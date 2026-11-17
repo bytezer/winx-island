@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::logger::logline;
 use crate::shortcuts;
+use crate::theme::ThemeSettings;
 
 pub const PANEL_TAB_MEDIA: &str = "media";
 pub const PANEL_TAB_SHORTCUTS: &str = "shortcuts";
@@ -94,8 +95,8 @@ impl AppearanceSettings {
         Self {
             compact_width: self.compact_width.clamp(100, 320),
             compact_height: self.compact_height.clamp(28, 64),
-            offset_x: self.offset_x.clamp(-200, 200),
-            offset_y: self.offset_y.clamp(-10, 200),
+            offset_x: self.offset_x,
+            offset_y: self.offset_y,
             theme: if is_valid_theme(&self.theme) {
                 self.theme.clone()
             } else {
@@ -122,6 +123,7 @@ pub struct ShortcutEntry {
 pub struct SettingsFile {
     pub visualizer: VisualizerSettings,
     pub appearance: AppearanceSettings,
+    pub theme: ThemeSettings,
     pub shortcuts: Vec<ShortcutEntry>,
     pub ui: UiSettings,
 }
@@ -131,6 +133,7 @@ impl SettingsFile {
         Self {
             visualizer: VisualizerSettings::default(),
             appearance: AppearanceSettings::default(),
+            theme: ThemeSettings::default(),
             shortcuts: shortcuts::default_entries(),
             ui: UiSettings::default(),
         }
@@ -157,6 +160,7 @@ pub struct ShortcutView {
 pub struct SettingsView {
     pub visualizer_enabled: bool,
     pub appearance: AppearanceSettings,
+    pub theme: ThemeSettings,
     pub last_panel_tab: String,
     pub shortcuts: Vec<ShortcutView>,
 }
@@ -182,6 +186,7 @@ const SETTINGS_HEADER: &str = r#"# winx-island settings
 # - The grid scrolls, so any number of tiles works.
 # - "ui.lastPanelTab" is one of: media, shortcuts.
 # - "visualizer.enabled" drives the spectrum bars.
+# - "theme" stores the appearance editor colors and corner roundness.
 # - "appearance.compactWidth" / "compactHeight" size the collapsed pill.
 # - "appearance.offsetX" / "offsetY" move the window from the top-centre
 #   anchor; right-drag the island to set them by hand.
@@ -260,6 +265,7 @@ impl Settings {
         SettingsView {
             visualizer_enabled: file.visualizer.enabled,
             appearance: file.appearance.clamped(),
+            theme: file.theme.normalized(),
             last_panel_tab: file.ui.last_panel_tab.clone(),
             shortcuts: file
                 .shortcuts
@@ -278,13 +284,8 @@ impl Settings {
     /// Makes sure the file exists so the settings location button always has
     /// something to reveal.
     pub fn ensure_file(&self) {
-        let snapshot = {
-            let Ok(file) = self.state.read() else {
-                return;
-            };
-            file.clone()
-        };
-        Self::write(&self.path, &snapshot);
+        let Ok(state) = self.state.read() else { return; };
+        Self::write(&self.path, &state);
     }
 
     pub fn set_visualizer_enabled(&self, enabled: bool) {
@@ -311,7 +312,9 @@ impl Settings {
         });
     }
 
-    pub fn set_theme(&self, theme: &str) {
+    /// Sets the CSS colour theme (midnight, graphite, ocean, glass). The
+    /// spectrum appearance lives in `theme::ThemeSettings` instead.
+    pub fn set_css_theme(&self, theme: &str) {
         if !is_valid_theme(theme) {
             return;
         }
@@ -338,53 +341,44 @@ impl Settings {
         self.update(|file| file.ui.last_panel_tab = tab.to_string());
     }
 
+    pub fn set_theme(&self, theme: ThemeSettings) -> Result<ThemeSettings, String> {
+        theme.validate()?;
+        let normalized = theme.normalized();
+        let mut state = self.state.write().map_err(|_| "No se pudieron abrir los ajustes.".to_string())?;
+        let mut updated = state.clone();
+        updated.theme = normalized.clone();
+        Self::persist(&self.path, &updated)?;
+        *state = updated;
+        Ok(normalized)
+    }
+
     fn update<F: FnOnce(&mut SettingsFile)>(&self, mutate: F) {
-        let updated = {
-            let Ok(mut file) = self.state.write() else {
-                return;
-            };
-            mutate(&mut file);
-            file.clone()
-        };
-        Self::write(&self.path, &updated);
+        let Ok(mut state) = self.state.write() else { return; };
+        let mut updated = state.clone();
+        mutate(&mut updated);
+        match Self::persist(&self.path, &updated) {
+            Ok(()) => *state = updated,
+            Err(error) => logline!("failed to save settings: {error}"),
+        }
     }
 
     fn write(path: &PathBuf, file: &SettingsFile) {
-        match serde_yaml::to_string(file) {
-            Ok(document) => {
-                logline!(
-                    "writing settings ({} shortcuts, visualizer {}, tab '{}')",
-                    file.shortcuts.len(),
-                    file.visualizer.enabled,
-                    file.ui.last_panel_tab
-                );
-                if let Some(parent) = path.parent() {
-                    let _ = fs::create_dir_all(parent);
-                }
-                let text = format!("{SETTINGS_HEADER}{document}");
-                // Atomic-ish: a concurrent read can never see a half-written
-                // document, which used to parse as two YAML documents.
-                let scratch = path.with_extension("yaml.tmp");
-                if fs::write(&scratch, &text).is_ok() {
-                    match fs::rename(&scratch, path) {
-                        Ok(()) => {}
-                        Err(_) => {
-                            let _ = fs::remove_file(path);
-                            if let Err(error) = fs::rename(&scratch, path) {
-                                logline!("failed to save settings: {error}");
-                            }
-                        }
-                    }
-                } else {
-                    logline!("failed to write settings scratch file");
-                    if let Err(error) = fs::write(path, text) {
-                        logline!("failed to save settings: {error}");
-                    }
-                }
-            }
-            Err(error) => logline!("failed to serialize settings: {error}"),
+        if let Err(error) = Self::persist(path, file) {
+            logline!("failed to save settings: {error}");
         }
     }
+
+    fn persist(path: &PathBuf, file: &SettingsFile) -> Result<(), String> {
+        let document = serde_yaml::to_string(file).map_err(|error| error.to_string())?;
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+        }
+        let scratch = path.with_extension("yaml.tmp");
+        fs::write(&scratch, format!("{SETTINGS_HEADER}{document}")).map_err(|error| error.to_string())?;
+        fs::rename(&scratch, path).map_err(|error| error.to_string())?;
+        Ok(())
+    }
+
 }
 
 pub fn data_dir() -> PathBuf {

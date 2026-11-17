@@ -1,33 +1,33 @@
-import { useSpectrum } from "../hooks/useSpectrum";
+import { useSpectrum } from "../hooks/useLevel";
+import { useThemeContext } from "../hooks/useThemeContext";
+import { useSpectrumCanvas } from "../hooks/useSpectrumAnimation";
+import { DEFAULT_THEME } from "../lib/theme";
+import { SPECTRUM_HEIGHT } from "../lib/spectrum-renderer";
+import type { ThemeSettings } from "../types";
 
 interface WaveformProps {
   playing: boolean;
   visualizer: boolean;
+  bars?: number;
 }
 
-const BARS = 4;
-
-/** Live bars are measured from the baseline in px. */
-function heightFor(value: number): number {
-  return Math.max(2, 2 + 16 * Math.pow(value, 0.7));
+interface SpectrumBarsProps extends WaveformProps {
+  bands: readonly number[];
+  theme?: ThemeSettings;
 }
 
-/**
- * The compact pill indicator. Spectrum driven while playing with the visualizer
- * on; falls back to the procedural wave otherwise.
- */
-export function Waveform({ playing, visualizer }: WaveformProps) {
-  const { values } = useSpectrum(BARS);
-  const live = visualizer && playing;
-
+export function SpectrumBars({ bands, playing, visualizer, bars = 7, theme = DEFAULT_THEME }: SpectrumBarsProps) {
+  const canvas = useSpectrumCanvas(bands, theme, playing, visualizer, bars);
+  const width = bars * 4 + Math.max(0, bars - 1) * 2;
   return (
-    <div className={`waveform ${playing ? "is-playing" : ""} ${live ? "is-peak" : ""}`} aria-hidden="true">
-      {Array.from({ length: BARS }).map((_, index) => (
-        <span
-          key={index}
-          style={live ? { height: `${heightFor(values[index] ?? 0)}px` } : undefined}
-        />
-      ))}
+    <div className={`waveform ${playing ? "is-playing" : ""} ${visualizer ? "is-peak" : ""}`} data-style={theme.barStyle} aria-hidden="true" style={{ width }}>
+      <canvas ref={canvas} width={width} height={SPECTRUM_HEIGHT} />
     </div>
   );
+}
+
+export function Waveform(props: WaveformProps) {
+  const bands = useSpectrum();
+  const theme = useThemeContext();
+  return <SpectrumBars {...props} bands={bands} theme={theme} />;
 }

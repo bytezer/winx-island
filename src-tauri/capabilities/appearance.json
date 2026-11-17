@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "appearance",
+  "description": "Appearance editor window with local settings and close access.",
+  "windows": ["appearance"],
+  "permissions": ["core:default", "core:window:allow-close"]
+}

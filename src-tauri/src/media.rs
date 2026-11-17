@@ -1,69 +1,26 @@
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
+use crate::media_choice::{choose_source, source_label, Candidate};
+pub use crate::media_snapshot::MediaSnapshot;
+use crate::media_snapshot::MediaSource;
+use crate::system_media::SystemMedia;
 use std::sync::{Arc, Mutex};
 
-use base64::engine::general_purpose::STANDARD;
-use base64::Engine;
-use serde::Serialize;
 use tauri::{AppHandle, Emitter};
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 use tokio::time::{sleep, Duration};
-use windows::core::Interface;
-use windows::Media::Control::{
-    GlobalSystemMediaTransportControlsSession, GlobalSystemMediaTransportControlsSessionManager,
-    GlobalSystemMediaTransportControlsSessionPlaybackStatus,
-};
-use windows::Storage::Streams::{DataReader, IRandomAccessStreamReference, IInputStream};
 use windows::Win32::System::WinRT::{RoInitialize, RO_INIT_MULTITHREADED};
 
-use crate::logger::logline;
-
-const POLL_INTERVAL: Duration = Duration::from_millis(700);
-const MAX_ART_BYTES: u32 = 8 * 1024 * 1024;
-
-#[derive(Clone, Default, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct MediaSnapshot {
-    pub available: bool,
-    pub title: String,
-    pub artist: String,
-    pub album: String,
-    pub playing: bool,
-    pub position_ms: i64,
-    pub duration_ms: i64,
-    pub can_next: bool,
-    pub can_prev: bool,
-    pub can_seek: bool,
-    pub art: Option<String>,
-    pub source_app: String,
-}
-
-impl MediaSnapshot {
-    /// Everything that should trigger a frontend update. The playhead is
-    /// excluded on purpose: it is interpolated on the UI side.
-    fn signature(&self) -> String {
-        format!(
-            "{}|{}|{}|{}|{}|{}|{}|{}|{}",
-            self.available,
-            self.playing,
-            self.title,
-            self.artist,
-            self.album,
-            self.duration_ms,
-            self.source_app,
-            self.can_next,
-            self.art.as_ref().map_or(0, |art| art.len())
-        )
-    }
-}
+const POLL_INTERVAL: Duration = Duration::from_millis(500);
 
 pub enum Command {
     Transport(String),
     Seek(i64),
+    OpenFiles(Vec<String>),
+    AddFiles(Vec<String>),
+    SelectSource(String),
+    UseSystem,
+    Refresh,
 }
 
-/// Handle owned by the IPC layer. WinRT objects are not `Send`, so every media
-/// call happens on the dedicated polling thread; commands are queued to it.
 #[derive(Clone)]
 pub struct Controller {
     sender: UnboundedSender<Command>,
@@ -75,17 +32,18 @@ impl Controller {
         self.sender.send(command).map_err(|error| error.to_string())
     }
 
-    /// Last snapshot known by the polling thread. The island fetches this after
-    /// a reload instead of waiting for a media change event.
-    pub fn snapshot(&self) -> MediaSnapshot {
-        self.latest
-            .lock()
-            .map(|snapshot| snapshot.clone())
-            .unwrap_or_default()
-    }
-
+    /// Shared handle to the cached snapshot, handed to the polling thread.
     pub fn snapshotter(&self) -> Arc<Mutex<MediaSnapshot>> {
         self.latest.clone()
+    }
+
+    /// Last published snapshot, so a window that mounts or reloads does not
+    /// have to wait for the next poll tick.
+    pub fn snapshot(&self) -> MediaSnapshot {
+        match self.latest.lock() {
+            Ok(guard) => guard.clone(),
+            Err(_) => MediaSnapshot::default(),
+        }
     }
 }
 
@@ -101,22 +59,15 @@ pub fn spawn(
     latest: Arc<Mutex<MediaSnapshot>>,
 ) {
     std::thread::spawn(move || {
-        // SMTC is apartment agnostic, but activation still needs COM.
-        unsafe {
-            let _ = RoInitialize(RO_INIT_MULTITHREADED);
+        if unsafe { RoInitialize(RO_INIT_MULTITHREADED) }.is_err() {
+            return;
         }
-
-        let runtime = match tokio::runtime::Builder::new_current_thread()
+        let Ok(runtime) = tokio::runtime::Builder::new_current_thread()
             .enable_time()
             .build()
-        {
-            Ok(runtime) => runtime,
-            Err(error) => {
-                logline!("unable to build the media runtime: {error}");
-                return;
-            }
+        else {
+            return;
         };
-
         runtime.block_on(poll_loop(app, &mut receiver, latest));
     });
 }
@@ -126,213 +77,162 @@ async fn poll_loop(
     receiver: &mut UnboundedReceiver<Command>,
     latest: Arc<Mutex<MediaSnapshot>>,
 ) {
-    let mut signature = String::new();
-    let mut art_cache: Option<(u64, String)> = None;
-    let mut last_error = String::new();
-
+    let mut local = crate::local_player::LocalPlayer::new().await.ok();
+    let mut system = SystemMedia::new();
+    let mut selection = "auto".to_string();
+    let mut selected = String::new();
+    let mut command_error = None;
     loop {
-        tokio::select! {
-            _ = sleep(POLL_INTERVAL) => {}
-            command = receiver.recv() => {
-                match command {
-                    Some(Command::Transport(action)) => {
-                        if let Err(error) = control(&action, 0).await {
-                            logline!("transport command failed: {error}");
-                        }
+        let command = tokio::select! {
+            _ = sleep(POLL_INTERVAL) => None,
+            command = receiver.recv() => { if command.is_none() { break; } command }
+        };
+        if let Some(command) = command {
+            let result = match command {
+                Command::OpenFiles(paths) => {
+                    selection = "local".into();
+                    match local.as_mut() {
+                        Some(player) => player.open(paths).await.map_err(|error| error.to_string()),
+                        None => Err("El reproductor local no está disponible.".into()),
                     }
-                    Some(Command::Seek(position_ms)) => {
-                        if let Err(error) = control("seek", position_ms).await {
-                            logline!("seek command failed: {error}");
-                        }
-                    }
-                    None => {}
                 }
+                Command::AddFiles(paths) => {
+                    selection = "local".into();
+                    match local.as_mut() {
+                        Some(player) => player.add(paths).await.map_err(|error| error.to_string()),
+                        None => Err("El reproductor local no está disponible.".into()),
+                    }
+                }
+                Command::UseSystem => {
+                    select_source("system", &mut selection, &mut local, &system).await
+                }
+                Command::SelectSource(id) => {
+                    select_source(&id, &mut selection, &mut local, &system).await
+                }
+                Command::Refresh => Ok(()),
+                Command::Transport(action) => {
+                    route_action(&selected, &action, 0, &mut local, &system).await
+                }
+                Command::Seek(position) => {
+                    route_action(&selected, "seek", position, &mut local, &system).await
+                }
+            };
+            command_error = result.err();
+        }
+        let _ = system.refresh().await;
+        if let Some(player) = local.as_mut() {
+            if let Err(error) = player.tick().await {
+                player.set_error(error.to_string());
             }
         }
-
-        let snapshot = match query(&mut art_cache).await {
-            Ok(snapshot) => snapshot,
-            Err(error) => {
-                let message = error.to_string();
-                if message != last_error {
-                    logline!("media query failed: {message}");
-                    last_error = message;
-                }
-                MediaSnapshot::default()
+        let local_snapshot = local
+            .as_ref()
+            .filter(|player| player.has_tracks())
+            .and_then(|player| player.snapshot().ok());
+        let mut sources: Vec<MediaSource> = system
+            .entries
+            .iter()
+            .map(|entry| MediaSource {
+                id: entry.id.clone(),
+                label: source_label(&entry.snapshot.source_app),
+                title: entry.snapshot.title.clone(),
+                playing: entry.snapshot.playing,
+            })
+            .collect();
+        if let Some(snapshot) = local_snapshot.as_ref() {
+            sources.push(MediaSource {
+                id: "local".into(),
+                label: "Archivos locales".into(),
+                title: snapshot.title.clone(),
+                playing: snapshot.playing,
+            });
+        }
+        if selection != "auto"
+            && selection != "system"
+            && !sources.iter().any(|source| source.id == selection)
+        {
+            selection = "auto".into();
+        }
+        let candidates: Vec<_> = sources
+            .iter()
+            .filter(|source| selection != "system" || source.id != "local")
+            .map(|source| Candidate {
+                id: source.id.clone(),
+                playing: source.playing,
+            })
+            .collect();
+        selected =
+            choose_source(&selection, &candidates, system.current.as_deref()).unwrap_or_default();
+        let mut snapshot = if selected == "local" {
+            if let Some(player) = local.as_mut().filter(|player| !player.active()) {
+                let _ = player.select().await;
             }
+            local_snapshot.unwrap_or_default()
+        } else if selected.is_empty() {
+            MediaSnapshot {
+                can_play_pause: true,
+                can_next: true,
+                can_prev: true,
+                repeat_mode: "off".into(),
+                ..Default::default()
+            }
+        } else {
+            system.snapshot(&selected).await.unwrap_or_default()
         };
-
-        // Keep the latest snapshot available for windows that mount or reload
-        // between media change events.
+        snapshot.source_selection = selection.clone();
+        snapshot.selected_source_id = selected.clone();
+        snapshot.sources = sources;
+        if command_error.is_some() {
+            snapshot.playback_error = command_error.clone();
+        }
         if let Ok(mut current) = latest.lock() {
             *current = snapshot.clone();
         }
-
-        let next = snapshot.signature();
-        if next != signature {
-            signature = next;
-            let _ = app.emit("island://media", &snapshot);
-        }
+        let _ = app.emit("island://media", snapshot);
     }
 }
 
-async fn manager() -> windows::core::Result<GlobalSystemMediaTransportControlsSessionManager> {
-    GlobalSystemMediaTransportControlsSessionManager::RequestAsync()?.await
-}
-
-async fn query(art_cache: &mut Option<(u64, String)>) -> windows::core::Result<MediaSnapshot> {
-    let manager = manager().await?;
-    let session = manager.GetCurrentSession()?;
-    read_session(&session, art_cache).await
-}
-
-async fn read_session(
-    session: &GlobalSystemMediaTransportControlsSession,
-    art_cache: &mut Option<(u64, String)>,
-) -> windows::core::Result<MediaSnapshot> {
-    let properties = session.TryGetMediaPropertiesAsync()?.await?;
-    let info = session.GetPlaybackInfo()?;
-    let status = info
-        .PlaybackStatus()
-        .unwrap_or(GlobalSystemMediaTransportControlsSessionPlaybackStatus::Closed);
-    let controls = info.Controls().ok();
-
-    let (position_ms, duration_ms) = match session.GetTimelineProperties() {
-        Ok(timeline) => {
-            let start = timeline
-                .StartTime()
-                .map(|value| value.Duration / 10_000)
-                .unwrap_or(0);
-            let end = timeline
-                .EndTime()
-                .map(|value| value.Duration / 10_000)
-                .unwrap_or(0);
-            let max_seek = timeline
-                .MaxSeekTime()
-                .map(|value| value.Duration / 10_000)
-                .unwrap_or(0);
-            let position = timeline
-                .Position()
-                .map(|value| value.Duration / 10_000)
-                .unwrap_or(0);
-            let duration = end.max(max_seek);
-            ((position - start).max(0), (duration - start).max(0))
+async fn select_source(
+    id: &str,
+    selection: &mut String,
+    local: &mut Option<crate::local_player::LocalPlayer>,
+    system: &SystemMedia,
+) -> Result<(), String> {
+    if id == "local" {
+        let player = local
+            .as_mut()
+            .filter(|player| player.has_tracks())
+            .ok_or("Primero agrega música local.")?;
+        player.select().await.map_err(|error| error.to_string())?;
+    } else if id != "auto" {
+        if id != "system" && !system.entries.iter().any(|entry| entry.id == id) {
+            return Err("La fuente seleccionada ya no está disponible.".into());
         }
-        Err(_) => (0, 0),
-    };
-
-    let mut snapshot = MediaSnapshot {
-        available: true,
-        title: properties
-            .Title()
-            .map(|value| value.to_string())
-            .unwrap_or_default(),
-        artist: properties
-            .Artist()
-            .map(|value| value.to_string())
-            .unwrap_or_default(),
-        album: properties
-            .AlbumTitle()
-            .map(|value| value.to_string())
-            .unwrap_or_default(),
-        playing: status == GlobalSystemMediaTransportControlsSessionPlaybackStatus::Playing,
-        position_ms,
-        duration_ms,
-        can_next: controls
-            .as_ref()
-            .and_then(|value| value.IsNextEnabled().ok())
-            .unwrap_or(false),
-        can_prev: controls
-            .as_ref()
-            .and_then(|value| value.IsPreviousEnabled().ok())
-            .unwrap_or(false),
-        can_seek: controls
-            .as_ref()
-            .and_then(|value| value.IsPlaybackPositionEnabled().ok())
-            .unwrap_or(false),
-        art: None,
-        source_app: session
-            .SourceAppUserModelId()
-            .map(|value| value.to_string())
-            .unwrap_or_default(),
-    };
-
-    if let Ok(thumbnail) = properties.Thumbnail() {
-        match read_thumbnail(&thumbnail, art_cache).await {
-            Ok(art) => snapshot.art = art,
-            Err(error) => logline!("thumbnail read failed: {error}"),
+        if let Some(player) = local.as_mut() {
+            player.use_system().map_err(|error| error.to_string())?;
         }
     }
-
-    Ok(snapshot)
-}
-
-async fn read_thumbnail(
-    reference: &IRandomAccessStreamReference,
-    art_cache: &mut Option<(u64, String)>,
-) -> windows::core::Result<Option<String>> {
-    let stream = reference.OpenReadAsync()?.await?;
-    let size = stream.Size()? as u32;
-    if size == 0 || size > MAX_ART_BYTES {
-        return Ok(None);
-    }
-
-    let input: IInputStream = stream.cast()?;
-    let reader = DataReader::CreateDataReader(&input)?;
-    reader.LoadAsync(size)?.await?;
-
-    let available = reader.UnconsumedBufferLength()? as usize;
-    if available == 0 {
-        return Ok(None);
-    }
-
-    let mut bytes = vec![0u8; available];
-    reader.ReadBytes(&mut bytes)?;
-
-    let hash = hash_bytes(&bytes);
-    if let Some((cached_hash, cached)) = art_cache.as_ref() {
-        if *cached_hash == hash {
-            return Ok(Some(cached.clone()));
-        }
-    }
-
-    let mime = stream
-        .ContentType()
-        .map(|value| value.to_string())
-        .unwrap_or_else(|_| "image/jpeg".to_string());
-    let data_url = format!("data:{};base64,{}", mime, STANDARD.encode(&bytes));
-    *art_cache = Some((hash, data_url.clone()));
-
-    Ok(Some(data_url))
-}
-
-fn hash_bytes(bytes: &[u8]) -> u64 {
-    let mut hasher = DefaultHasher::new();
-    bytes.hash(&mut hasher);
-    hasher.finish()
-}
-
-async fn control(action: &str, position_ms: i64) -> windows::core::Result<()> {
-    let manager = manager().await?;
-    let session = manager.GetCurrentSession()?;
-
-    match action {
-        "play_pause" => {
-            session.TryTogglePlayPauseAsync()?.await?;
-        }
-        "next" => {
-            session.TrySkipNextAsync()?.await?;
-        }
-        "prev" => {
-            session.TrySkipPreviousAsync()?.await?;
-        }
-        "seek" => {
-            session
-                .TryChangePlaybackPositionAsync(position_ms.saturating_mul(10_000))?
-                .await?;
-        }
-        other => logline!("unknown media action: {other}"),
-    }
-
+    *selection = id.into();
     Ok(())
+}
+
+async fn route_action(
+    selected: &str,
+    action: &str,
+    position: i64,
+    local: &mut Option<crate::local_player::LocalPlayer>,
+    system: &SystemMedia,
+) -> Result<(), String> {
+    if selected == "local" {
+        local
+            .as_mut()
+            .ok_or("El reproductor local no está disponible.")?
+            .control(action, position)
+            .await
+            .map_err(|error| error.to_string())
+    } else if selected.is_empty() {
+        crate::system_media::media_key(action)
+    } else {
+        system.control(selected, action, position).await
+    }
 }

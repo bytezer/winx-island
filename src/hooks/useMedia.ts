@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
-import type { MediaSnapshot } from "../types";
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import type { MediaAction, MediaSnapshot, MusicLibraryActions } from "../types";
 
 const EMPTY: MediaSnapshot = {
   available: false,
@@ -16,10 +16,21 @@ const EMPTY: MediaSnapshot = {
   canSeek: false,
   art: null,
   sourceApp: "",
+  queueIndex: 0,
+  queueLength: 0,
+  playbackError: null,
+  shuffleEnabled: false,
+  repeatMode: "off",
+  sourceSelection: "auto",
+  canPlayPause: true,
+  sources: [],
 };
 
 export function useMedia() {
   const [media, setMedia] = useState<MediaSnapshot>(EMPTY);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const pickerOpen = useRef(false);
   const receivedAt = useRef<number>(performance.now());
   const hasEvent = useRef(false);
 
@@ -45,13 +56,84 @@ export function useMedia() {
       receivedAt.current = performance.now();
       setMedia(event.payload);
     });
+    void unsubscribe.then(() => {
+      if (!disposed) return invoke("refresh_media");
+    }).catch((reason: unknown) => {
+      if (!disposed) setError(String(reason));
+    });
     return () => {
       disposed = true;
-      void unsubscribe.then((off) => off());
+      void unsubscribe.then((off) => off()).catch(() => {});
     };
   }, []);
 
-  return { media, receivedAt };
+  const chooseMusic = useCallback(async (command: "open_music_files" | "add_music_folders") => {
+    if (pickerOpen.current) return;
+    pickerOpen.current = true;
+    setBusy(true);
+    setError(null);
+    try {
+      const result = await invoke<boolean | { found: number; skippedFolders: number } | null>(command);
+      if (result && typeof result === "object" && result.skippedFolders > 0) {
+        setError(`Music imported; ${result.skippedFolders} folders could not be read.`);
+      }
+    } catch (reason) {
+      setError(String(reason));
+    } finally {
+      pickerOpen.current = false;
+      setBusy(false);
+    }
+  }, []);
+
+  const onOpen = useCallback(() => chooseMusic("open_music_files"), [chooseMusic]);
+  const onFolders = useCallback(() => chooseMusic("add_music_folders"), [chooseMusic]);
+
+  const onSystem = useCallback(async () => {
+    setError(null);
+    try {
+      await invoke("use_system_media");
+    } catch (reason) {
+      setError(String(reason));
+    }
+  }, []);
+
+  const onSource = useCallback(async (id: string) => {
+    setError(null);
+    try { await invoke("select_media_source", { id }); }
+    catch (reason) { setError(String(reason)); }
+  }, []);
+
+  const onAction = useCallback(async (action: MediaAction) => {
+    if (action === "play_pause" && !media.available && !media.sourceSelection) {
+      await onFolders();
+      return;
+    }
+    setError(null);
+    try {
+      await sendMediaAction(action);
+    } catch (reason) {
+      setError(String(reason));
+    }
+  }, [media.available, media.sourceSelection, onFolders]);
+
+  const onSeek = useCallback(async (positionMs: number) => {
+    setError(null);
+    try {
+      await seekTo(positionMs);
+    } catch (reason) {
+      setError(String(reason));
+    }
+  }, []);
+
+  const library: MusicLibraryActions = {
+    busy,
+    error: error ?? media.playbackError,
+    onOpen,
+    onFolders,
+    onSystem,
+    onSource,
+  };
+  return { media, receivedAt, library, onAction, onSeek };
 }
 
 /** Playhead position, interpolated locally so the progress bar moves smoothly. */
@@ -69,13 +151,12 @@ export function usePlayhead(media: MediaSnapshot, receivedAt: RefObject<number>,
     const elapsed = performance.now() - receivedAt.current;
     const next = media.positionMs + elapsed;
     return media.durationMs > 0 ? Math.min(next, media.durationMs) : next;
-    // `tick` is intentionally part of the dependency list to drive re-renders.
   }, [media.positionMs, media.durationMs, media.playing, receivedAt, tick]);
 
   return position;
 }
 
-export async function sendMediaAction(action: "play_pause" | "next" | "prev") {
+export async function sendMediaAction(action: MediaAction) {
   await invoke("media_control", { action, positionMs: null });
 }
 

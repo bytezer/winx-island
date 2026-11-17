@@ -51,7 +51,7 @@ impl PointerState {
         }
     }
 
-    fn rect(&self) -> Rect {
+    pub fn rect(&self) -> Rect {
         self.rect.lock().map(|value| *value).unwrap_or_default()
     }
 }
@@ -78,15 +78,12 @@ pub fn spawn(app: AppHandle, state: Arc<PointerState>) {
                 continue;
             };
 
-            // A drag owns the pointer and the window position; emitting
-            // hover changes mid-gesture would collapse the island.
             if state.dragging.load(Ordering::Relaxed) {
                 last = None;
+                geometry = None;
                 continue;
             }
 
-            // Querying the runtime for the window rect every frame is wasteful;
-            // the window only moves on startup or a display change.
             if geometry.is_none() || tick % 32 == 0 {
                 if let (Ok(origin), Ok(scale)) = (window.outer_position(), window.scale_factor()) {
                     geometry = Some((origin.x as f64, origin.y as f64, scale));

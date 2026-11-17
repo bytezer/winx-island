@@ -1,32 +1,41 @@
-import type { MediaSnapshot } from "../types";
+import { MusicLibraryControls, MediaSourceControls } from "./MusicLibraryControls";
+import { useLevel, useSpectrum } from "../hooks/useLevel";
+import { useThemeContext } from "../hooks/useThemeContext";
+import { AUDIO_NOISE_FLOOR } from "../lib/visualizer";
+import type { MediaAction, MediaSnapshot, MusicLibraryActions } from "../types";
 import { CoverArt } from "./CoverArt";
 import { ProgressBar } from "./ProgressBar";
-import { Spectrum } from "./Spectrum";
+import { SpectrumBars } from "./Waveform";
 import { Transport } from "./Transport";
 
 interface HoverCardProps {
   media: MediaSnapshot;
+  library: MusicLibraryActions;
   positionMs: number;
   visualizer: boolean;
-  onAction: (action: "play_pause" | "next" | "prev") => void;
+  onAction: (action: MediaAction) => void;
   onSeek: (positionMs: number) => void;
 }
 
-export function HoverCard({ media, positionMs, visualizer, onAction, onSeek }: HoverCardProps) {
+export function HoverCard({ media, library, positionMs, visualizer, onAction, onSeek }: HoverCardProps) {
+  const systemAudio = useLevel() > AUDIO_NOISE_FLOOR && visualizer;
+  const bands = useSpectrum();
+  const theme = useThemeContext();
   return (
     <div className="hover-card">
       <div className="hover-main">
         <CoverArt src={media.art} size={78} radius={16} />
         <div className="meta">
-          <div className="meta-title">{media.available ? media.title || "Unknown track" : "Nothing playing"}</div>
+          <div className="meta-title">{media.available ? media.title || "Unknown track" : systemAudio ? "System audio" : media.sourceSelection ? "Audio de tus aplicaciones" : "Your music, right here"}</div>
           <div className="meta-sub">
-            {media.available ? media.artist || "Unknown artist" : "Start playback in any app"}
+            {media.available ? media.artist || "Unknown artist" : systemAudio ? "Visualizing Windows output" : media.sourceSelection ? "YouTube, Spotify, navegador o archivos locales" : "Choose music from your PC"}
           </div>
-          {media.available && media.album && <div className="meta-album">{media.album}</div>}
+          <MusicLibraryControls media={media} library={library} showSources={false} />
         </div>
-        <Transport media={media} onAction={onAction} />
+        <Transport media={media} busy={library.busy} onAction={onAction} />
       </div>
 
+      <MediaSourceControls media={media} library={library} />
       <div className="hover-bottom">
         <ProgressBar
           positionMs={positionMs}
@@ -35,7 +44,7 @@ export function HoverCard({ media, positionMs, visualizer, onAction, onSeek }: H
           showTimes={media.durationMs > 0}
           onSeek={onSeek}
         />
-        <Spectrum bars={12} visualizer={visualizer} playing={media.playing} />
+        <SpectrumBars bands={bands} theme={theme} bars={12} visualizer={visualizer} playing={media.playing} />
       </div>
     </div>
   );

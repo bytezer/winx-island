@@ -1,11 +1,16 @@
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { SpectrumAnimationContext, SpectrumActiveContext } from "./hooks/useSpectrumAnimation";
+import { createSpectrumAnimation } from "./lib/spectrum-renderer";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
+import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
+import { ThemeContext } from "./hooks/useThemeContext";
+import { useTheme } from "./hooks/useTheme";
+import { normalizeTheme, themeVariables, themeAccent } from "./lib/theme";
 import { layoutFor } from "./lib/layout";
 import { extractAccent } from "./lib/accent";
 import { formatClock } from "./lib/format";
 import { useSettings } from "./hooks/useSettings";
-import { useTheme } from "./hooks/useTheme";
-import { sendMediaAction, seekTo, useMedia, usePlayhead } from "./hooks/useMedia";
+import { useMedia, usePlayhead } from "./hooks/useMedia";
 import { useInteractiveRect, usePointerInside } from "./hooks/usePointer";
 import type { PanelTab, View } from "./types";
 import { CompactPill } from "./island/CompactPill";
@@ -29,19 +34,29 @@ const forcedPanelTab: PanelTab | undefined = (() => {
 })();
 
 export default function App() {
-  const { media, receivedAt } = useMedia();
-  const { visualizerEnabled, appearance, lastPanelTab, shortcuts } = useSettings();
+  const spectrumAnimation = useRef(createSpectrumAnimation());
+  const { media, receivedAt, library, onAction, onSeek } = useMedia();
+  const { visualizerEnabled, appearance, theme: savedTheme, lastPanelTab, shortcuts } = useSettings();
+  const theme = useMemo(() => normalizeTheme(savedTheme), [savedTheme]);
   useTheme(appearance.theme);
   const inside = usePointerInside();
+  const [dragging, setDragging] = useState(false);
   const [view, setView] = useState<View>(forcedView ?? "compact");
   const [accent, setAccent] = useState<string | null>(null);
   const [now, setNow] = useState(() => new Date());
   const [panelTab, setPanelTab] = useState<PanelTab>(forcedPanelTab ?? lastPanelTab);
 
-  const layout = useMemo(() => layoutFor(appearance), [appearance]);
+  const layout = useMemo(() => {
+    const sizes = layoutFor(appearance, theme.islandRoundness);
+    const sourcesHeight = media.sourceSelection ? 32 : 0;
+    return {
+      ...sizes,
+      hover: { ...sizes.hover, height: sizes.hover.height + sourcesHeight + (library.error ? 44 : 0) },
+      panel: { ...sizes.panel, height: sizes.panel.height + sourcesHeight },
+    };
+  }, [appearance, theme.islandRoundness, library.error, media.sourceSelection]);
   useInteractiveRect(view, layout);
 
-  // Idle clock: only ticks while the compact pill is showing nothing playing.
   useEffect(() => {
     if (media.available) return;
     setNow(new Date());
@@ -49,17 +64,23 @@ export default function App() {
     return () => window.clearInterval(interval);
   }, [media.available]);
 
-  // Expand on hover, collapse shortly after the pointer leaves the island.
   useEffect(() => {
-    if (forcedView) return;
+    const subscription = listen<boolean>("island://dragging", event => {
+      setDragging(event.payload);
+      if (event.payload) setView("compact");
+    });
+    return () => { void subscription.then(off => off()); };
+  }, []);
+
+  useEffect(() => {
+    if (forcedView || dragging) return;
     if (!inside) {
       const timeout = window.setTimeout(() => setView("compact"), 260);
       return () => window.clearTimeout(timeout);
     }
     setView((current) => (current === "compact" ? "hover" : current));
-  }, [inside]);
+  }, [inside, dragging]);
 
-  // Keep the accent in sync with the current cover art.
   useEffect(() => {
     if (!media.art) {
       setAccent(null);
@@ -76,14 +97,6 @@ export default function App() {
 
   const positionMs = usePlayhead(media, receivedAt, view !== "compact");
 
-  const onAction = useCallback((action: "play_pause" | "next" | "prev") => {
-    void sendMediaAction(action);
-  }, []);
-
-  const onSeek = useCallback((value: number) => {
-    void seekTo(value);
-  }, []);
-
   const onTab = useCallback((tab: PanelTab) => {
     setPanelTab(tab);
   }, []);
@@ -99,13 +112,9 @@ export default function App() {
   const box = layout[view];
   const clock = useMemo(() => formatClock(now), [now]);
 
-  // Only override the theme accent while artwork provides one; without art the
-  // theme's own accent applies.
-  const accentStyle = accent
-    ? ({ ["--accent" as string]: accent } as CSSProperties)
-    : undefined;
-
   return (
+    <ThemeContext.Provider value={theme}>
+    <SpectrumAnimationContext.Provider value={spectrumAnimation}>
     <div className="canvas">
       <div
         className="island"
@@ -114,11 +123,11 @@ export default function App() {
           width: box.width,
           height: box.height,
           borderRadius: box.radius,
-          ...accentStyle,
+          ...themeVariables(theme, view),
+          ["--accent" as string]: themeAccent(theme, accent ?? undefined),
         }}
         onClick={togglePanel}
         onPointerDown={(event) => {
-          // Right-drag repositions the window; the native side owns the gesture.
           if (event.button === 2) {
             event.preventDefault();
             void invoke("begin_drag");
@@ -129,22 +138,29 @@ export default function App() {
         <div className="glow" />
 
         <div className="layer" data-active={view === "compact"}>
+          <SpectrumActiveContext.Provider value={view === "compact"}>
           <CompactPill media={media} clock={clock} visualizer={visualizerEnabled} />
+          </SpectrumActiveContext.Provider>
         </div>
 
         <div className="layer" data-active={view === "hover"}>
+          <SpectrumActiveContext.Provider value={view === "hover"}>
           <HoverCard
             media={media}
+            library={library}
             positionMs={positionMs}
             visualizer={visualizerEnabled}
             onAction={onAction}
             onSeek={onSeek}
           />
+          </SpectrumActiveContext.Provider>
         </div>
 
         <div className="layer" data-active={view === "panel"}>
+          <SpectrumActiveContext.Provider value={view === "panel"}>
           <Panel
             media={media}
+            library={library}
             positionMs={positionMs}
             panelTab={panelTab}
             shortcuts={shortcuts}
@@ -153,8 +169,11 @@ export default function App() {
             onSeek={onSeek}
             onTab={onTab}
           />
+          </SpectrumActiveContext.Provider>
         </div>
       </div>
     </div>
+    </SpectrumAnimationContext.Provider>
+    </ThemeContext.Provider>
   );
 }

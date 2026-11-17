@@ -16,13 +16,19 @@ pub struct RectInput {
 }
 
 #[tauri::command]
-pub fn set_interactive_rect(rect: RectInput, state: State<'_, Arc<PointerState>>) {
+pub fn set_interactive_rect(rect: RectInput, state: State<'_, Arc<PointerState>>, settings: State<'_, Arc<Settings>>, app: AppHandle) {
     state.set_rect(Rect {
         x: rect.x,
         y: rect.y,
         w: rect.w,
         h: rect.h,
     });
+    if !state.dragging.load(std::sync::atomic::Ordering::Relaxed) {
+        if let Some(window) = app.get_webview_window("island") {
+            let appearance = settings.appearance();
+            crate::window_setup::place_for_rect(&window, appearance.offset_x, appearance.offset_y, state.rect());
+        }
+    }
 }
 
 #[tauri::command]
@@ -40,6 +46,11 @@ pub fn media_control(
 #[tauri::command]
 pub fn get_media_snapshot(controller: State<'_, Controller>) -> MediaSnapshot {
     controller.snapshot()
+}
+
+#[tauri::command]
+pub fn select_media_source(id: String, controller: State<'_, Controller>) -> Result<(), String> {
+    controller.send(Command::SelectSource(id))
 }
 
 #[tauri::command]
@@ -68,7 +79,7 @@ pub fn set_theme(
     if !crate::settings::is_valid_theme(&theme) {
         return Err(format!("unknown theme '{theme}'"));
     }
-    settings.set_theme(&theme);
+    settings.set_css_theme(&theme);
     let _ = app.emit("island://settings", settings.view());
     Ok(())
 }
@@ -152,4 +163,103 @@ pub fn open_shortcut(id: String, settings: State<'_, Arc<Settings>>) {
 #[tauri::command]
 pub fn quit_app(app: tauri::AppHandle) {
     app.exit(0);
+}
+
+#[tauri::command]
+pub async fn open_music_files(controller: State<'_, Controller>) -> Result<bool, String> {
+    let files = tauri::async_runtime::spawn_blocking(crate::music_picker::select_files)
+        .await.map_err(|error| error.to_string())??;
+    if files.is_empty() { return Ok(false); }
+    controller.send(Command::OpenFiles(files))?;
+    Ok(true)
+}
+
+#[tauri::command]
+pub fn use_system_media(controller: State<'_, Controller>) -> Result<(), String> {
+    controller.send(Command::UseSystem)
+}
+
+#[tauri::command]
+pub fn refresh_media(controller: State<'_, Controller>) -> Result<(), String> {
+    controller.send(Command::Refresh)
+}
+
+#[tauri::command]
+pub async fn add_music_folders(controller: State<'_, Controller>) -> Result<Option<FolderImport>, String> {
+    let scan = tauri::async_runtime::spawn_blocking(|| {
+        let folders = crate::music_picker::select_folders()?;
+        if folders.is_empty() { return Ok::<_, String>(None); }
+        Ok(Some(crate::music_library::scan_folders(&folders)))
+    }).await.map_err(|error| error.to_string())??;
+    let Some(scan) = scan else { return Ok(None); };
+    if scan.tracks.is_empty() {
+        return Err(if scan.skipped_folders > 0 {
+            "No music found. Some folders could not be read; check their location and permissions.".into()
+        } else {
+            "No supported music files found in the selected folders or their subfolders.".into()
+        });
+    }
+    let result = FolderImport { found: scan.tracks.len(), skipped_folders: scan.skipped_folders };
+    controller.send(Command::AddFiles(scan.tracks))?;
+    Ok(Some(result))
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FolderImport {
+    found: usize,
+    skipped_folders: usize,
+}
+
+#[tauri::command]
+pub fn save_theme(
+    theme: crate::theme::ThemeSettings,
+    settings: State<'_, Arc<Settings>>,
+    app: AppHandle,
+) -> Result<crate::theme::ThemeSettings, String> {
+    let saved = settings.set_theme(theme)?;
+    let _ = app.emit("island://settings", settings.view());
+    Ok(saved)
+}
+
+#[tauri::command]
+pub async fn open_appearance_editor(app: AppHandle) -> Result<(), String> {
+    use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
+    use tauri::webview::PageLoadEvent;
+    if let Some(window) = app.get_webview_window("appearance") {
+        window.show().map_err(|error| error.to_string())?;
+        window.unminimize().map_err(|error| error.to_string())?;
+        return window.set_focus().map_err(|error| error.to_string());
+    }
+    WebviewWindowBuilder::new(&app, "appearance", WebviewUrl::App("index.html?view=appearance".into()))
+        .title("Personalizar — winx-island")
+        .inner_size(900.0, 680.0)
+        .min_inner_size(760.0, 580.0)
+        .center()
+        .focused(true)
+        // Shown from the page load handler so the first frame is never blank.
+        .visible(false)
+        .on_page_load(|window, payload| {
+            // `Started` fires before the first paint; showing then would flash
+            // the webview's default white background.
+            if payload.event() != PageLoadEvent::Finished {
+                return;
+            }
+            let _ = window.show();
+            let _ = window.set_focus();
+        })
+        .build().map_err(|error| error.to_string())?;
+
+    // Creating a second WebView2 controller makes the transparent island stop
+    // compositing its content: only the pill background remains painted. A page
+    // reload restores it. Hide the island first so the user never sees the
+    // blank frame; the island's on_page_load handler shows it again.
+    if let Some(island) = app.get_webview_window("island") {
+        let _ = island.hide();
+        if let Err(error) = island.reload() {
+            crate::logger::log(format!("failed to reload the island webview: {error}"));
+            let _ = island.show();
+        }
+    }
+    Ok(())
 }

@@ -1,9 +1,10 @@
-import type { MediaSnapshot } from "../types";
+import type { MediaAction, MediaSnapshot } from "../types";
 
 interface TransportProps {
   media: MediaSnapshot;
   large?: boolean;
-  onAction: (action: "play_pause" | "next" | "prev") => void;
+  busy?: boolean;
+  onAction: (action: MediaAction) => void;
 }
 
 function PreviousIcon() {
@@ -38,18 +39,38 @@ function PauseIcon({ large }: { large?: boolean }) {
   );
 }
 
-export function Transport({ media, large, onAction }: TransportProps) {
-  const stop = (event: React.MouseEvent, action: "play_pause" | "next" | "prev") => {
+function ShuffleIcon() {
+  return <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M3 6h2c5 0 7 12 12 12h4m-4-4 4 4-4 4M3 18h2c2.5 0 4.2-3 6-6s3.5-6 6-6h4m-4-4 4 4-4 4" />
+  </svg>;
+}
+
+function RepeatIcon({ one }: { one: boolean }) {
+  return <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="m16 2 4 4-4 4M20 6H7a4 4 0 0 0-4 4m5 12-4-4 4-4m-4 4h13a4 4 0 0 0 4-4" />
+    {one && <path d="m10 11 2-1v5m-2 0h4" />}
+  </svg>;
+}
+
+export function Transport({ media, large, busy = false, onAction }: TransportProps) {
+  const local = media.sourceApp === "winx-island.local";
+  const repeat = media.repeatMode || "off";
+  const repeatLabel = `Repetición: ${repeat === "one" ? "una canción" : repeat === "all" ? "toda la lista" : "desactivada"}`;
+  const stop = (event: React.MouseEvent, action: MediaAction) => {
     event.stopPropagation();
     onAction(action);
   };
 
   return (
     <div className={`transport ${large ? "transport-large" : ""}`}>
+      {local && <button type="button" className="icon-button mode-button" disabled={busy} onClick={(event) => stop(event, "shuffle")}
+        aria-label="Aleatorio" aria-pressed={media.shuffleEnabled} title={media.shuffleEnabled ? "Aleatorio activado" : "Aleatorio desactivado"}>
+        <ShuffleIcon />
+      </button>}
       <button
         type="button"
         className="icon-button"
-        disabled={!media.available || !media.canPrev}
+        disabled={!media.canPrev}
         onClick={(event) => stop(event, "prev")}
         aria-label="Previous track"
       >
@@ -58,21 +79,25 @@ export function Transport({ media, large, onAction }: TransportProps) {
       <button
         type="button"
         className={`play-button ${large ? "play-button-large" : ""}`}
-        disabled={!media.available}
+        disabled={busy || media.canPlayPause === false}
         onClick={(event) => stop(event, "play_pause")}
-        aria-label={media.playing ? "Pause" : "Play"}
+        aria-label={!media.available && !media.sourceSelection ? "Open music files" : media.playing ? "Pause" : "Play"}
       >
         {media.playing ? <PauseIcon large={large} /> : <PlayIcon large={large} />}
       </button>
       <button
         type="button"
         className="icon-button"
-        disabled={!media.available || !media.canNext}
+        disabled={!media.canNext}
         onClick={(event) => stop(event, "next")}
         aria-label="Next track"
       >
         <NextIcon />
       </button>
+      {local && <button type="button" className="icon-button mode-button" disabled={busy} onClick={(event) => stop(event, "repeat")}
+        aria-label={repeatLabel} aria-pressed={repeat !== "off"} title={`${repeatLabel}. Cambiar modo`}>
+        <RepeatIcon one={repeat === "one"} />
+      </button>}
     </div>
   );
 }

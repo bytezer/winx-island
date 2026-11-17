@@ -1,11 +1,4 @@
-/* ----------------------------------------------------------------- theme -- */
-
-/* Four themes. `data-theme` is set on <html> by useTheme(); the bare :root
-   block is the midnight set so the first paint before React runs - and the app
-   when the attribute is missing - stays correct. `--surface` is translucent in
-   the glass theme, so the opaque settings window uses `--shell-surface`. */
-:root,
-:root[data-theme="midnight"] {
+:root {
   --text: #f5f5f7;
   --muted: rgba(245, 245, 247, 0.56);
   --muted-2: rgba(245, 245, 247, 0.34);
@@ -57,6 +50,15 @@
   box-sizing: border-box;
 }
 
+/* The overlay must stay transparent; the settings window is opaque. That
+   window cannot use `--surface`: it is translucent in the glass theme, which
+   would let WebView2's default white page show through the shell. */
+html[data-window="settings"],
+html[data-window="settings"] body,
+html[data-window="settings"] #root {
+  background: var(--shell-surface);
+}
+
 html,
 body,
 #root {
@@ -66,15 +68,6 @@ body,
   height: 100%;
   background: transparent;
   overflow: hidden;
-}
-
-/* The overlay must stay transparent; the settings window is opaque. That
-   window cannot use `--surface`: it is translucent in the glass theme, which
-   would let WebView2's default white page show through the shell. */
-html[data-window="settings"],
-html[data-window="settings"] body,
-html[data-window="settings"] #root {
-  background: var(--shell-surface);
 }
 
 body {
@@ -101,6 +94,7 @@ body {
 /* ---------------------------------------------------------------- island -- */
 
 .island {
+  color: var(--text);
   position: relative;
   pointer-events: auto;
   overflow: hidden;
@@ -133,24 +127,21 @@ body {
   inset: -40% -10% auto -10%;
   height: 120%;
   background: radial-gradient(60% 70% at 50% 0%, var(--accent) 0%, transparent 70%);
-  opacity: 0.16;
+  opacity: calc(0.16 * var(--glow-strength, 1));
   filter: blur(12px);
   transition: opacity 400ms ease;
   pointer-events: none;
 }
 
 .island[data-view="compact"] .glow {
-  opacity: 0.1;
+  opacity: calc(0.1 * var(--glow-strength, 1));
 }
 
 .layer {
   position: absolute;
   inset: 0;
   opacity: 0;
-  transform: scale(0.985);
-  transition:
-    opacity 170ms ease,
-    transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity 170ms ease;
   pointer-events: none;
 }
 
@@ -197,56 +188,16 @@ body {
 .waveform {
   display: flex;
   align-items: center;
-  gap: 3px;
-  height: 18px;
+  height: 28px;
+  max-height: 100%;
+  flex: none;
 }
 
-.waveform span {
-  width: 3px;
-  height: 14px;
-  border-radius: 2px;
-  background: linear-gradient(180deg, #ffffff, var(--accent));
-  transform: scaleY(0.3);
-  opacity: 0.5;
-  animation: wave 900ms ease-in-out infinite;
-  animation-play-state: paused;
-}
-
-.waveform span:nth-child(2) {
-  height: 18px;
-  animation-duration: 780ms;
-}
-
-.waveform span:nth-child(3) {
-  height: 11px;
-  animation-duration: 1020ms;
-}
-
-.waveform span:nth-child(4) {
-  height: 16px;
-  animation-duration: 860ms;
-}
-
-.waveform.is-playing span {
-  animation-play-state: running;
-  opacity: 0.95;
-}
-
-.waveform.is-peak span {
-  animation: none;
-  transform: none;
-  opacity: 0.95;
-  transition: height 90ms linear;
-}
-
-@keyframes wave {
-  0%,
-  100% {
-    transform: scaleY(0.28);
-  }
-  50% {
-    transform: scaleY(1);
-  }
+.waveform canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: transparent;
 }
 
 /* ------------------------------------------------------------------ art -- */
@@ -386,7 +337,7 @@ body {
   border: 0;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.14);
-  color: #ffffff;
+  color: var(--text);
   cursor: pointer;
   transition:
     background 150ms ease,
@@ -420,49 +371,13 @@ body {
   height: 34px;
 }
 
-/* --------------------------------------------------------------- spectrum -- */
+/* --------------------------------------------------------- mini visualizer -- */
 
-.spectrum {
+.mini-visualizer {
   display: flex;
-  align-items: flex-end;
-  gap: 3px;
-  height: 20px;
+  align-items: center;
+  height: 24px;
   flex: none;
-}
-
-.spectrum.is-panel {
-  gap: 2px;
-  height: 26px;
-}
-
-.spectrum-band {
-  position: relative;
-  display: flex;
-  align-items: flex-end;
-  width: 3px;
-  height: 100%;
-}
-
-.spectrum-bar {
-  width: 3px;
-  border-radius: 2px;
-  background: linear-gradient(180deg, #ffffff, var(--accent));
-  transition: height 90ms linear;
-}
-
-.spectrum-peak {
-  position: absolute;
-  left: 0;
-  width: 3px;
-  height: 2px;
-  border-radius: 1px;
-  background: var(--accent);
-  opacity: 0.9;
-  transition: bottom 90ms linear;
-}
-
-.spectrum:not(.is-playing) .spectrum-band {
-  opacity: 0.45;
 }
 
 .hover-bottom {
@@ -635,7 +550,7 @@ body {
   position: relative;
 }
 
-.panel-transport .spectrum {
+.panel-transport .mini-visualizer {
   position: absolute;
   right: 0;
   top: 50%;
@@ -875,12 +790,114 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .island,
   .layer,
-  .waveform span,
   .progress-fill {
     transition-duration: 1ms;
     animation: none;
   }
 }
+
+.music-library {
+  margin-top: 7px;
+  min-width: 0;
+}
+
+.music-library-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.music-open,
+.music-system {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 1px solid rgba(174, 199, 255, 0.18);
+  border-radius: 7px;
+  padding: 4px 7px;
+  color: #d9e6ff;
+  background: rgba(139, 168, 255, 0.1);
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.music-open:hover,
+.music-system:hover {
+  background: rgba(139, 168, 255, 0.2);
+}
+
+.music-open:disabled,
+.music-system:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.music-system {
+  border-color: transparent;
+  padding: 4px 2px;
+  background: transparent;
+  color: var(--muted);
+}
+
+.music-queue {
+  color: var(--muted);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.music-error {
+  margin-top: 4px;
+  color: #ffb1b1;
+  font-size: 10px;
+  line-height: 14px;
+  max-height: 42px;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.panel-media > .music-library {
+  margin-top: 0;
+}
+
+.mode-button[aria-pressed="true"] {
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 25%, transparent);
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+
+.media-sources {
+  height: 32px;
+  min-height: 32px;
+  align-items: flex-start;
+  overflow-y: hidden;
+  display: flex;
+  gap: 5px;
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 5px 0 3px;
+  scrollbar-width: thin;
+}
+.media-sources button {
+  flex: none;
+  max-width: 150px;
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--muted);
+  background: transparent;
+  font: inherit;
+  font-size: 10px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  cursor: pointer;
+}
+.media-sources button[aria-pressed="true"] { color: var(--text); background: var(--surface-raised); border-color: var(--accent); }
+.media-sources button[data-current="true"] { color: var(--text); }
 
 /* ------------------------------------------------------------ glass theme -- */
 

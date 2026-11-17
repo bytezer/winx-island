@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useState } from "react";
+import { DEFAULT_THEME } from "../lib/theme";
 import type { PanelTab, SettingsState, Theme } from "../types";
 
 const DEFAULTS: SettingsState = {
@@ -12,6 +13,7 @@ const DEFAULTS: SettingsState = {
     offsetY: 0,
     theme: "midnight",
   },
+  theme: DEFAULT_THEME,
   lastPanelTab: "media",
   shortcuts: [],
 };
@@ -80,4 +82,8 @@ export async function launchShortcut(id: string) {
 
 export async function revealSettings() {
   await invoke("open_settings_location");
+}
+
+export async function openAppearanceEditor() {
+  await invoke("open_appearance_editor");
 }

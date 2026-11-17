@@ -13,16 +13,18 @@ export interface IslandBox {
 export const LAYOUT: Record<View, IslandBox> = {
   compact: { width: 132, height: 40, radius: 20 },
   hover: { width: 462, height: 142, radius: 26 },
-  panel: { width: 462, height: 280, radius: 28 },
+  panel: { width: 462, height: 320, radius: 28 },
 };
 
 /** Compact pill size is user configurable; hover and panel keep their layout. */
-export function layoutFor(appearance: Appearance): Record<View, IslandBox> {
+export function layoutFor(appearance: Appearance, roundness = 100): Record<View, IslandBox> {
   const width = Math.min(320, Math.max(100, appearance.compactWidth || 132));
   const height = Math.min(64, Math.max(28, appearance.compactHeight || 40));
+  const factor = Number.isFinite(roundness) ? Math.max(0, Math.min(100, roundness)) / 100 : 1;
   return {
-    ...LAYOUT,
-    compact: { width, height, radius: Math.min(height / 2, 22) },
+    compact: { width, height, radius: Math.min(height / 2, 22) * factor },
+    hover: { ...LAYOUT.hover, radius: LAYOUT.hover.radius * factor },
+    panel: { ...LAYOUT.panel, radius: LAYOUT.panel.radius * factor },
   };
 }
 

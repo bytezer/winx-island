@@ -1,14 +1,26 @@
 #![windows_subsystem = "windows"]
 
 mod audio;
+mod audio_capture;
+mod audio_samples;
+mod spectrum;
 mod commands;
 mod drag;
 mod focus;
 mod logger;
 mod media;
+mod media_choice;
+mod positioning;
+mod system_media;
+mod media_snapshot;
+mod local_player;
+mod music_picker;
+mod music_library;
+mod music_queue;
 mod pointer;
 mod settings;
 mod settings_window;
+mod theme;
 mod shortcuts;
 mod window_setup;
 
@@ -42,7 +54,14 @@ fn main() {
             commands::set_interactive_rect,
             commands::media_control,
             commands::get_media_snapshot,
+            commands::select_media_source,
+            commands::open_music_files,
+            commands::add_music_folders,
+            commands::use_system_media,
+            commands::refresh_media,
             commands::get_settings,
+            commands::save_theme,
+            commands::open_appearance_editor,
             commands::set_visualizer_enabled,
             commands::set_panel_tab,
             commands::set_theme,
@@ -80,6 +99,8 @@ fn main() {
                 .inner_size(window_setup::CANVAS_WIDTH, window_setup::CANVAS_HEIGHT)
                 .decorations(false)
                 .transparent(true)
+                .background_color(tauri::utils::config::Color(0, 0, 0, 0))
+                .no_redirection_bitmap(true)
                 .always_on_top(true)
                 .skip_taskbar(true)
                 .resizable(false)

@@ -132,6 +132,21 @@ export function SettingsIcon({ size = 22 }: IconProps): ReactNode {
   );
 }
 
+/** Gear used for the generic settings window entry point. */
+export function GearIcon({ size = 22 }: IconProps): ReactNode {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true">
+      <path
+        d="M12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8Zm8.1 3.4a8 8 0 0 0-.13-1.47l2-1.55-2-3.46-2.36.95a8 8 0 0 0-2.55-1.47L14.7 2h-4l-.36 2.5a8 8 0 0 0-2.55 1.47l-2.36-.95-2 3.46 2 1.55a8.1 8.1 0 0 0 0 2.94l-2 1.55 2 3.46 2.36-.95a8 8 0 0 0 2.55 1.47L10.7 22h4l.36-2.5a8 8 0 0 0 2.55-1.47l2.36.95 2-3.46-2-1.55c.09-.48.13-.97.13-1.47Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function SuspendIcon({ size = 22 }: IconProps): ReactNode {
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true">
