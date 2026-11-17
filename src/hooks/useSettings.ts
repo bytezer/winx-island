@@ -86,10 +86,6 @@ export async function revealSettings() {
   await invoke("open_settings_location");
 }
 
-export async function openAppearanceEditor() {
-  await invoke("open_appearance_editor");
-}
-
 /** `null` clears the override and follows the Windows display language. */
 export async function changeLanguage(language: string | null) {
   await invoke("set_language", { language });

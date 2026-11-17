@@ -4,8 +4,8 @@ import { useT } from "../i18n/LocaleContext";
 import { AUDIO_NOISE_FLOOR } from "../lib/visualizer";
 import { invoke } from "@tauri-apps/api/core";
 import type { MediaAction, MediaSnapshot, MusicLibraryActions, PanelTab, Shortcut } from "../types";
-import { changePanelTab, changeVisualizer, openAppearanceEditor, openSettings } from "../hooks/useSettings";
-import { GearIcon, SettingsIcon } from "./icons";
+import { changePanelTab, changeVisualizer, openSettings } from "../hooks/useSettings";
+import { GearIcon } from "./icons";
 import { CoverArt } from "./CoverArt";
 import { MiniVisualizer } from "./MiniVisualizer";
 import { ProgressBar } from "./ProgressBar";
@@ -164,18 +164,6 @@ export function Panel({
       <div className="panel-footer">
         <span className="wordmark">winx-island</span>
         <div className="footer-actions">
-          <button
-            type="button"
-            className="ghost-button icon-only"
-            aria-label={t("island.panel.customize")}
-            title={t("island.panel.customize")}
-            onClick={(event) => {
-              event.stopPropagation();
-              void openAppearanceEditor();
-            }}
-          >
-            <SettingsIcon size={14} />
-          </button>
           <button
             type="button"
             className="ghost-button icon-only"

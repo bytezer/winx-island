@@ -82,8 +82,7 @@ test("BARS-07: the editor exposes style, gradient direction and peak controls", 
       { language: "en" },
       createElement(AppearanceStudio, {
         initial,
-        appearance: { compactWidth: 132, compactHeight: 40, offsetX: 0, offsetY: 0 },
-        onClose: async () => {},
+        appearance: { compactWidth: 132, compactHeight: 40, offsetX: 0, offsetY: 0, theme: "midnight" },
       }),
     ),
   );

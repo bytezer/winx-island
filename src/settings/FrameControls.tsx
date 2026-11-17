@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { changeCompactSize, changeTheme, resetPosition } from "../../hooks/useSettings";
-import { THEMES } from "../../hooks/useTheme";
-import { useT } from "../../i18n/LocaleContext";
-import type { Appearance as AppearanceSettings } from "../../types";
+import { changeCompactSize, changeTheme, resetPosition } from "../hooks/useSettings";
+import { THEMES } from "../hooks/useTheme";
+import { useT } from "../i18n/LocaleContext";
+import type { Appearance } from "../types";
 
 const MIN_WIDTH = 100;
 const MAX_WIDTH = 320;
@@ -17,11 +17,16 @@ interface Size {
   height: number;
 }
 
-interface AppearanceProps {
-  appearance: AppearanceSettings;
+interface FrameControlsProps {
+  appearance: Appearance;
 }
 
-export function Appearance({ appearance }: AppearanceProps) {
+/**
+ * "The frame" block of the appearance editor: the controls that apply
+ * immediately (theme, pill size, position), unlike the bar styling above them,
+ * which is part of the draft and only lands on Save.
+ */
+export function FrameControls({ appearance }: FrameControlsProps) {
   const t = useT();
 
   // Local draft for the sliders. It starts from the persisted values, but the
@@ -114,13 +119,14 @@ export function Appearance({ appearance }: AppearanceProps) {
   };
 
   return (
-    <section className="settings-section">
-      <header className="settings-section-head">
-        <h2>{t("settings.appearance.title")}</h2>
-        <p>{t("settings.appearance.subtitle")}</p>
-      </header>
+    <section className="appearance-section frame-section" data-immediate>
+      <div className="section-title">
+        <span className="section-number">03</span>
+        <h2>{t("settings.frame.title")}</h2>
+      </div>
+      <p className="frame-hint">{t("settings.frame.hint")}</p>
 
-      <div className="settings-card">
+      <div className="frame-swatches">
         <div className="settings-row-text">
           <span className="settings-row-title">{t("settings.appearance.theme")}</span>
           <span className="settings-row-hint">{t("settings.appearance.theme_hint")}</span>
@@ -146,85 +152,57 @@ export function Appearance({ appearance }: AppearanceProps) {
         </div>
       </div>
 
-      <div className="settings-card">
+      <div className="frame-slider">
         <div className="settings-row-text">
           <span className="settings-row-title">{t("settings.appearance.pill_size")}</span>
           <span className="settings-row-hint">{t("settings.appearance.pill_size_hint")}</span>
         </div>
 
-        <div className="settings-size-grid">
-          <div className="settings-size-sliders">
-            <div className="settings-slider">
-              <span className="settings-slider-label">{t("settings.appearance.width")}</span>
-              <input
-                type="range"
-                min={MIN_WIDTH}
-                max={MAX_WIDTH}
-                step={1}
-                value={width}
-                aria-label={t("settings.appearance.width")}
-                onChange={(event) => updateWidth(Number(event.target.value))}
-                onPointerUp={commit}
-                onKeyUp={commit}
-                onBlur={commit}
-              />
-              <span className="settings-slider-value">{width} px</span>
-            </div>
-
-            <div className="settings-slider">
-              <span className="settings-slider-label">{t("settings.appearance.height")}</span>
-              <input
-                type="range"
-                min={MIN_HEIGHT}
-                max={MAX_HEIGHT}
-                step={1}
-                value={height}
-                aria-label={t("settings.appearance.height")}
-                onChange={(event) => updateHeight(Number(event.target.value))}
-                onPointerUp={commit}
-                onKeyUp={commit}
-                onBlur={commit}
-              />
-              <span className="settings-slider-value">{height} px</span>
-            </div>
+        <div className="settings-size-sliders">
+          <div className="settings-slider">
+            <span className="settings-slider-label">{t("settings.appearance.width")}</span>
+            <input
+              type="range"
+              min={MIN_WIDTH}
+              max={MAX_WIDTH}
+              step={1}
+              value={width}
+              aria-label={t("settings.appearance.width")}
+              onChange={(event) => updateWidth(Number(event.target.value))}
+              onPointerUp={commit}
+              onKeyUp={commit}
+              onBlur={commit}
+            />
+            <span className="settings-slider-value">{width} px</span>
           </div>
 
-          <div className="settings-preview">
-            <div
-              className="settings-preview-pill"
-              style={{
-                width,
-                height,
-                borderRadius: Math.min(height / 2, 22),
-                // Shrunk to fit the preview stage, never enlarged.
-                transform: `scale(${Math.min(1, 148 / width, 64 / height)})`,
-              }}
-            >
-              <span className="settings-preview-dot" />
-              <span className="settings-preview-bars">
-                <span />
-                <span />
-                <span />
-              </span>
-            </div>
+          <div className="settings-slider">
+            <span className="settings-slider-label">{t("settings.appearance.height")}</span>
+            <input
+              type="range"
+              min={MIN_HEIGHT}
+              max={MAX_HEIGHT}
+              step={1}
+              value={height}
+              aria-label={t("settings.appearance.height")}
+              onChange={(event) => updateHeight(Number(event.target.value))}
+              onPointerUp={commit}
+              onKeyUp={commit}
+              onBlur={commit}
+            />
+            <span className="settings-slider-value">{height} px</span>
           </div>
         </div>
       </div>
 
-      <div className="settings-card">
-        <div className="settings-row">
-          <div className="settings-row-text">
-            <span className="settings-row-title">{t("settings.appearance.position")}</span>
-            <span className="settings-row-hint">{t("settings.appearance.position_hint")}</span>
-          </div>
-          <button
-            type="button"
-            className="settings-button"
-            onClick={() => void resetPosition()}
-          >
-            {t("settings.appearance.reset_position")}
-          </button>
+      <div className="frame-actions">
+        <div className="settings-row-text">
+          <span className="settings-row-title">{t("settings.appearance.position")}</span>
+          <span className="settings-row-hint">{t("settings.appearance.position_hint")}</span>
         </div>
+        <button type="button" className="settings-button" onClick={() => void resetPosition()}>
+          {t("settings.appearance.reset_position")}
+        </button>
       </div>
     </section>
   );

@@ -114,6 +114,10 @@
       "graphite": "Graphite",
       "ocean": "Ocean",
       "glass": "Glass"
+    },
+    "frame": {
+      "title": "The frame",
+      "hint": "Applies immediately; it is not part of the draft above."
     }
   },
   "appearance_editor": {

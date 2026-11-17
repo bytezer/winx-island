@@ -13,6 +13,10 @@
   font-size: 12px;
 }
 
+/* The editor is embedded in the settings window's content area; html, body and
+   #root are already height: 100%, so this makes it fill that area. */
+.appearance-editor.is-embedded { height: 100%; }
+
 .appearance-editor button,
 .appearance-loading button {
   font-family: inherit;
@@ -23,19 +27,19 @@
 .appearance-editor button:focus-visible,
 .appearance-editor input:focus-visible { outline: 2px solid #8eaeff; outline-offset: 3px; }
 
-.appearance-header {
+.appearance-band {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  padding: 28px 28px 24px;
+  padding: 6px 28px;
   flex: none;
+  border-bottom: 1px solid #242c3a;
 }
 
 .editor-eyebrow { font-size: 9px; font-weight: 650; letter-spacing: 0.16em; color: #8692aa; }
-.appearance-header h1 { margin: 8px 0 6px; font-size: 29px; font-weight: 600; letter-spacing: -0.04em; }
-.appearance-header p { margin: 0; color: #94a0b7; font-size: 12px; }
 .draft-status { padding: 6px 9px; border: 1px solid #283040; color: #8792a9; border-radius: 20px; font-size: 10px; white-space: nowrap; }
+.appearance-band .draft-status { padding: 4px 9px; font-size: 9px; }
 .draft-status.is-dirty { border-color: #76623b; color: #eed09b; background: #c18a2910; }
 
 .appearance-main {
@@ -125,8 +129,7 @@
 .appearance-loading button { border: 1px solid #394b66; border-radius: 8px; color: #c8d7f2; background: #1c283a; padding: 9px 18px; }
 
 @media (max-height: 620px) {
-  .appearance-header { padding: 20px 24px; }
-  .appearance-header h1 { font-size: 24px; }
+  .appearance-band { padding: 4px 24px; }
   .appearance-section { padding: 16px; }
   .appearance-preview-stage { min-height: 180px; }
 }

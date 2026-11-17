@@ -4,7 +4,7 @@ import { useTheme } from "../hooks/useTheme";
 import { LocaleProvider, useT } from "../i18n/LocaleContext";
 import { SettingsNav, type SettingsSection } from "./SettingsNav";
 import { General } from "./sections/General";
-import { Appearance } from "./sections/Appearance";
+import { AppearanceEditor } from "./AppearanceEditor";
 import { About } from "./sections/About";
 
 /**
@@ -63,16 +63,16 @@ export default function SettingsApp() {
 
         <div className="settings-body">
           <SettingsNav active={section} onSelect={setSection} />
-          <main className="settings-content">
+          <main
+            className={"settings-content" + (section === "appearance" ? " is-fullbleed" : "")}
+          >
             {section === "general" && (
               <General
                 visualizerEnabled={settings.visualizerEnabled}
                 languageOverride={settings.languageOverride}
               />
             )}
-            {section === "appearance" && (
-              <Appearance appearance={settings.appearance} />
-            )}
+            {section === "appearance" && <AppearanceEditor />}
             {section === "about" && <About />}
           </main>
         </div>

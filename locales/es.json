@@ -114,6 +114,10 @@
       "graphite": "Grafito",
       "ocean": "Océano",
       "glass": "Cristal"
+    },
+    "frame": {
+      "title": "El marco",
+      "hint": "Se aplica al instante; no forma parte del borrador de arriba."
     }
   },
   "appearance_editor": {

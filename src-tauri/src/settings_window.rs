@@ -14,8 +14,12 @@ use crate::logger::logline;
 /// Window label shared with the frontend capability file.
 pub const LABEL: &str = "settings";
 /// Logical size of the settings window; the frontend layout assumes it.
-pub const WIDTH: f64 = 693.0;
-pub const HEIGHT: f64 = 420.0;
+pub const WIDTH: f64 = 900.0;
+pub const HEIGHT: f64 = 680.0;
+/// Size floor, inert while the window stays non-resizable but kept ready
+/// for the day resizing is enabled.
+pub const MIN_WIDTH: f64 = 760.0;
+pub const MIN_HEIGHT: f64 = 580.0;
 
 /// Shows the settings window, creating it the first time.
 pub fn open(app: &AppHandle) -> Result<(), String> {
@@ -51,6 +55,9 @@ fn create(app: &AppHandle) -> Result<(), String> {
         .initialization_script("window.__winxSettingsWindow = true;")
         .title("winx-island settings")
         .inner_size(WIDTH, HEIGHT)
+        // Inert while `resizable(false)` below, but keeps the size floor
+        // ready for the day resizing is enabled.
+        .min_inner_size(MIN_WIDTH, MIN_HEIGHT)
         .center()
         .decorations(false)
         .resizable(false)

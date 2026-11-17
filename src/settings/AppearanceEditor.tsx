@@ -1,12 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { getCurrentWindow } from "@tauri-apps/api/window";
-import { revealSettings, useSettings } from "../hooks/useSettings";
+import { closeSettings, revealSettings, useSettings } from "../hooks/useSettings";
 import { LocaleProvider, useT } from "../i18n/LocaleContext";
 import { errorText, toUiError, type UiError } from "../i18n/errors";
 import { useSpectrum } from "../hooks/useLevel";
 import { DEFAULT_THEME, normalizeTheme, CLASSIC_SPECTRUM } from "../lib/theme";
 import { AppearancePreview } from "./AppearancePreview";
+import { FrameControls } from "./FrameControls";
 import type { Appearance, SettingsState, ThemeSettings, View, VisualizerColorMode, VisualizerBarStyle } from "../types";
 import "./appearance.css";
 
@@ -58,10 +58,9 @@ function useSampleSpectrum(enabled: boolean) {
 interface StudioProps {
   initial: ThemeSettings;
   appearance: Appearance;
-  onClose: () => Promise<void>;
 }
 
-export function AppearanceStudio({ initial, appearance, onClose }: StudioProps) {
+export function AppearanceStudio({ initial, appearance }: StudioProps) {
   const t = useT();
   const [baseline, setBaseline] = useState(() => normalizeTheme(initial));
   const [draft, setDraft] = useState(() => normalizeTheme(initial));
@@ -95,16 +94,20 @@ export function AppearanceStudio({ initial, appearance, onClose }: StudioProps) 
     }
   }
 
-  async function close() {
-    try { await onClose(); } catch (reason) { setError(toUiError(reason)); }
+  /** Revert the draft to the persisted baseline without saving anything. */
+  function discard() {
+    setDraft(baseline);
+    setError(null);
   }
 
   return (
-    <div className="appearance-editor">
-      <header className="appearance-header">
-        <div><span className="editor-eyebrow">{t("appearance_editor.eyebrow")}</span><h1>{t("appearance_editor.title")}</h1><p>{t("appearance_editor.subtitle")}</p></div>
-        <span className={`draft-status ${dirty ? "is-dirty" : ""}`}>{dirty ? t("appearance_editor.status_dirty") : saved ? t("appearance_editor.status_saved") : t("appearance_editor.status_current")}</span>
-      </header>
+    <div className="appearance-editor is-embedded">
+      <div className="appearance-band">
+        <span className="editor-eyebrow">{t("appearance_editor.eyebrow")}</span>
+        <span className={`draft-status ${dirty ? "is-dirty" : ""}`}>
+          {dirty ? t("appearance_editor.status_dirty") : saved ? t("appearance_editor.status_saved") : t("appearance_editor.status_current")}
+        </span>
+      </div>
 
       <main className="appearance-main">
         <fieldset className="appearance-controls" disabled={saving}>
@@ -177,6 +180,8 @@ export function AppearanceStudio({ initial, appearance, onClose }: StudioProps) 
             )}
             <label className="glow-toggle"><span><strong>{t("appearance_editor.glow")}</strong><small>{t("appearance_editor.glow_hint")}</small></span><input type="checkbox" checked={draft.glow} onChange={(event) => change({ glow: event.target.checked })} /></label>
           </section>
+
+          <FrameControls appearance={appearance} />
           <button type="button" className="editor-advanced" onClick={() => void revealSettings().catch((reason: unknown) => setError(toUiError(reason)))}>{t("appearance_editor.open_settings_file")}</button>
         </fieldset>
 
@@ -200,16 +205,16 @@ export function AppearanceStudio({ initial, appearance, onClose }: StudioProps) 
       <footer className="appearance-footer">
         <button type="button" className="editor-reset" disabled={saving} onClick={() => change(DEFAULT_THEME)}>{t("appearance_editor.reset")}</button>
         <div className="editor-feedback" role={error ? "alert" : "status"}>{errorText(t, error) ?? (saved ? t("appearance_editor.saved") : "")}</div>
-        <button type="button" className="editor-cancel" disabled={saving} onClick={() => void close()}>{dirty ? t("appearance_editor.cancel") : t("appearance_editor.dismiss")}</button>
+        <button type="button" className="editor-cancel" disabled={!dirty || saving} onClick={discard}>{t("appearance_editor.cancel")}</button>
         <button type="button" className="editor-save" disabled={!dirty || saving} onClick={() => void save()}>{saving ? t("appearance_editor.saving") : t("appearance_editor.save")}</button>
       </footer>
     </div>
   );
 }
 
-export default function AppearanceEditor() {
-  // Live language: the editor is the same bundle in its own window, so it must
-  // follow `island://settings` too.
+export function AppearanceEditor(): ReactNode {
+  // Live language: the editor is a section of the settings window now, but it
+  // is still the same bundle, so it must follow `island://settings` too.
   const { language } = useSettings();
   return <LocaleProvider language={language}><AppearanceEditorContent /></LocaleProvider>;
 }
@@ -227,7 +232,7 @@ function AppearanceEditorContent() {
     return () => { active = false; };
   }, []);
   if (!settings) {
-    return <div className="appearance-loading"><h1>{t("appearance_editor.window_title")}</h1><p role={error ? "alert" : "status"}>{errorText(t, error) ?? t("appearance_editor.loading")}</p><button type="button" onClick={() => void getCurrentWindow().close()}>{t("appearance_editor.dismiss")}</button></div>;
+    return <div className="appearance-loading"><h1>{t("appearance_editor.window_title")}</h1><p role={error ? "alert" : "status"}>{errorText(t, error) ?? t("appearance_editor.loading")}</p><button type="button" onClick={() => void closeSettings()}>{t("appearance_editor.dismiss")}</button></div>;
   }
-  return <AppearanceStudio initial={settings.theme ?? DEFAULT_THEME} appearance={settings.appearance} onClose={() => getCurrentWindow().close()} />;
+  return <AppearanceStudio initial={settings.theme ?? DEFAULT_THEME} appearance={settings.appearance} />;
 }

@@ -62,7 +62,6 @@ fn main() {
             commands::refresh_media,
             commands::get_settings,
             commands::save_theme,
-            commands::open_appearance_editor,
             commands::set_visualizer_enabled,
             commands::set_language,
             commands::set_panel_tab,

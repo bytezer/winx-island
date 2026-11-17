@@ -69,20 +69,19 @@ Prerequisites (once): `rustup target add x86_64-pc-windows-msvc`,
 - The window is built imperatively in `src-tauri/src/main.rs`;
   `tauri.conf.json` intentionally has `app.windows: []`. Window flags belong in
   Rust, not in the Tauri config.
-- There are three windows. `island` is the overlay described below. `settings`
-  is a normal, focusable 693x420 window created on demand by
+- There are two windows. `island` is the overlay described below. `settings`
+  is a normal, focusable 900x680 window created on demand by
   `src-tauri/src/settings_window.rs` (label `settings`, the same `index.html`,
   `window.__winxSettingsWindow = true` injected so the frontend renders
-  `src/settings/SettingsApp.tsx`). `appearance` is the richer appearance editor,
-  created by `open_appearance_editor` in `commands.rs` with
-  `index.html?view=appearance`, which `src/main.tsx` maps to
-  `src/settings/AppearanceEditor.tsx`. Neither of the editor windows may be
+  `src/settings/SettingsApp.tsx`). Its Appearance section embeds the island
+  editor (`src/settings/AppearanceEditor.tsx` exports the embedded
+  `AppearanceEditor`; `FrameControls.tsx` is the immediate-apply block with the
+  application theme, pill size and position). The settings window must never be
   passed to `pointer.rs`, `window_setup::configure` or any click-through /
-  no-activate logic: those only target `island`. Both are destroyed on close and
-  recreated by the next open. `island` and `settings` share
-  `src-tauri/capabilities/default.json`; `appearance` has its own
-  `capabilities/appearance.json`. Keep every new permission valid for the window
-  that needs it.
+  no-activate logic: those only target `island`. It is destroyed on close and
+  recreated by the next `open_settings`. Both windows share
+  `src-tauri/capabilities/default.json`, so new window permissions must stay
+  valid for both.
 - Creating the `settings` webview breaks the transparent island's WebView2
   composition on Windows: the pill keeps its background but paints no content.
   `settings_window.rs` therefore hides and reloads the island on first creation;
@@ -133,11 +132,11 @@ Prerequisites (once): `rustup target add x86_64-pc-windows-msvc`,
 - IPC surface: `set_interactive_rect`, `media_control`, `get_media_snapshot`,
   `select_media_source`, `open_music_files`, `add_music_folders`,
   `use_system_media`, `refresh_media`, `get_settings`, `save_theme`,
-  `open_appearance_editor`, `set_visualizer_enabled`, `set_panel_tab`,
+  `set_visualizer_enabled`, `set_panel_tab`,
   `set_language`, `set_theme`, `set_compact_size`, `reset_position`,
   `open_settings`, `close_settings`, `app_version`, `open_shortcut`,
   `open_settings_location`, `begin_drag`, `quit_app`. The settings commands
-  persist and re-emit `island://settings`, which all three windows listen to.
+  persist and re-emit `island://settings`, which both windows listen to.
   `set_language` is the one that changes the interface language.
 - Sync Tauri commands run on the main thread. Commands that create, close or
   reposition windows (`open_settings`, `close_settings`, `reset_position`) must

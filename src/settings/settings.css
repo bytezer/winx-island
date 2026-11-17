@@ -516,3 +516,80 @@
   color: var(--text);
   box-shadow: inset 0 0 0 1px var(--border);
 }
+
+/* ------------------------------------------------------------ full-bleed -- */
+
+/* The appearance section embeds the editor, which brings its own padding and
+   internal scrolling; the normal content padding and scrollbar would double
+   both up. */
+.settings-content.is-fullbleed {
+  padding: 0;
+  overflow: hidden;
+}
+
+/* ----------------------------------------------------------------- frame -- */
+
+/* "The frame" block of the appearance section: theme, pill size and position,
+   the controls that apply immediately instead of through the draft. Styled
+   from this window's tokens alone so the block reads as settings chrome, not
+   editor chrome; the `.settings-shell` descendant selectors also out-rank the
+   flat `.appearance-section` / `.section-title` rules that appearance.css
+   (loaded by the editor in this same window) applies to the shared classes. */
+.settings-shell .frame-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--shell-surface);
+}
+
+.settings-shell .frame-section .section-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+}
+
+.settings-shell .frame-section .section-title h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.settings-shell .frame-section .section-number {
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.settings-shell .frame-hint {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+/* Group cards below the hint, the same treatment as `.settings-card`; the
+   rows, swatch grid and sliders inside reuse the existing settings classes. */
+.settings-shell .frame-swatches,
+.settings-shell .frame-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-raised);
+}
+
+.settings-shell .frame-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-raised);
+}

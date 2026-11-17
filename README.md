@@ -27,10 +27,9 @@ and ignores clicks outside the visible pill.
   Windows settings, suspend).
 - Configurable pill size and window position, either in settings.yaml or by
   right-dragging the island.
-- Settings window for the visualizer switch, colour theme, pill size and a
-  position reset, opened from the gear icon in the panel footer.
-- Appearance editor window for the spectrum bar style, gradients and peak
-  markers, opened from the sliders icon in the panel footer.
+- One settings window, opened from the gear icon in the panel footer, with
+  General, Appearance and About sections. Appearance embeds the full island
+  editor with a live preview.
 - Single instance enforced per session.
 - Automatically hides while a fullscreen app or game is in the foreground.
 
@@ -125,11 +124,14 @@ src/                     React frontend (the island and the settings window)
   lib/                   layout constants, formatting, accent extraction
 src-tauri/src/
   main.rs                window creation and app wiring
-  settings_window.rs     on-demand 693x420 settings webview (focusable)
+  settings_window.rs     on-demand 900x680 settings webview (focusable)
   window_setup.rs        native window flags, DWM tweaks, placement
   pointer.rs             cursor polling and click-through toggling
-  media.rs               SMTC polling and transport commands
-  audio/                 WASAPI loopback capture, FFT and band analysis
+  media.rs               SMTC polling, source selection, transport commands
+  audio.rs               WASAPI loopback thread; emits island://level
+  audio_capture.rs       default render endpoint capture and sample decoding
+  spectrum.rs            in-repo radix-2 FFT, 7 log-spaced bands
+  theme.rs               visualizer theme validation and normalisation
   settings.rs            %APPDATA%\winx-island\settings.yaml
   shortcuts.rs           default shortcuts, path expansion, open actions
   focus.rs               fullscreen detection
@@ -233,9 +235,10 @@ or dragging the timeline does not toggle the expanded view.
 
 ## Customize the island
 
-Open the expanded panel and click its settings icon (**Personalizar apariencia**).
-The editor is a separate, focusable window with an animated preview; the overlay
-continues running. Preview the compact, hover and panel views before saving.
+Open the expanded panel and click its gear icon (**Abrir ajustes** / **Open
+settings**), then pick the **Apariencia / Appearance** section. The editor fills
+the window with an animated preview; the overlay continues running. Preview the
+compact, hover and panel views before saving.
 
 - Choose capsule, softly rounded or square corners, or adjust island roundness.
 - Choose continuous bars, segmented LEDs or dots. Set the ends independently
@@ -360,15 +363,21 @@ back immediately and need no restart.
 
 ### Settings window
 
-The gear icon in the panel footer opens a separate 693x420 window with three
-sections: General (visualizer switch, media source note), Appearance (theme,
-pill size with a live preview, reset position) and About (version, reveal
+The gear icon in the panel footer opens a separate 900x680 window with three
+sections: General (language, visualizer switch, media source note), Appearance
+(the full island editor with a live preview) and About (version, reveal
 `settings.yaml`, license, quit). The window is a normal focusable desktop
 window: it appears in the taskbar, takes keyboard focus and is closed with
 Escape or the header button. Unlike the island it is not click-through and not
 topmost, and it is created on first use and destroyed on close. Creating the
 second webview makes Windows stop compositing the island briefly, so the first
 open reloads the island; the cached media snapshot is restored immediately.
+
+Appearance is one screen with two speeds. The bar styling (shapes, corners,
+colours, peaks, glow) is a draft: **Restablecer aspecto** reverts it,
+**Guardar y aplicar** persists it. Below those blocks, **El marco** holds the
+application theme, the pill size and the position reset; those apply the moment
+you touch them and never wait for the save button.
 
 `appearance.theme` selects one of four palettes: `midnight` (the default),
 `graphite`, `ocean` and `glass`. The glass palette simulates translucency with
@@ -402,8 +411,8 @@ ui:
   language: es    # en | es; omit the key to follow Windows
 ```
 
-A change applies to the island, the settings window and the appearance editor at
-once, with no restart. Anything that is not a catalog key — an OS message, a
+A change applies to the island and the settings window at once, with no
+restart. Anything that is not a catalog key — an OS message, a
 dynamic error — is shown unchanged.
 
 Adding a third language takes three edits: a new `locales/<code>.json` with the
