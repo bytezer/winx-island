@@ -126,9 +126,16 @@ Prerequisites (once): `rustup target add x86_64-pc-windows-msvc`,
   reflection/noise layer). WebView2 cannot blur the desktop behind a
   transparent window, so `backdrop-filter` on the island is a no-op: never add
   it. The only real blur is the album-art `.panel-backdrop`.
-- The settings window is not transparent, so its shell uses the opaque
-  `--shell-surface` token, not `--surface` (which is translucent in glass and
-  would let WebView2's white page show through).
+- The settings window paints itself from the studio palette in
+  `src/settings/studio.css`: 19 `--studio-*` variables re-declared per CSS theme
+  (midnight defaults plus graphite, ocean, glass). `settings.css` and
+  `appearance.css` consume them and must not hardcode chrome colours; only
+  content stays literal (the RGB strip, the palette chips, the amber "unsaved"
+  trio). `tests/studio_css.test.ts` enforces the four blocks stay in sync.
+- The settings window is not transparent, so its studio values stay opaque: the
+  glass block uses solid colours, never `rgba`, or WebView2's white page would
+  show through. The old `--shell-surface` token still exists for the theme
+  blocks but the window base is `--studio-bg`.
 - IPC surface: `set_interactive_rect`, `media_control`, `get_media_snapshot`,
   `select_media_source`, `open_music_files`, `add_music_folders`,
   `use_system_media`, `refresh_media`, `get_settings`, `save_theme`,

@@ -2,17 +2,18 @@
    Every rule is scoped under .settings-shell so the island window, which loads
    the same bundle, is untouched. */
 
-/* `--shell-surface` instead of `--surface`: this window is not transparent, and
-   `--surface` is translucent in the glass theme, which would expose WebView2's
-   default white page behind the shell. */
+/* Chrome is painted from the studio palette in `studio.css`: one opaque token
+   set per theme, defined there. The shell no longer uses `--shell-surface` or
+   any island theme token, so the glass variant stays opaque and WebView2's
+   white page never shows through. */
 .settings-shell {
   display: flex;
   flex-direction: column;
   width: 100%;
   height: 100%;
-  background: var(--shell-surface);
-  border: 1px solid var(--border);
-  color: var(--text);
+  background: var(--studio-bg);
+  border: 1px solid var(--studio-card-border);
+  color: var(--studio-text);
 }
 
 /* ---------------------------------------------------------------- header -- */
@@ -24,15 +25,15 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 12px 0 20px;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface-raised);
+  border-bottom: 1px solid var(--studio-bar-border);
+  background: var(--studio-bar);
 }
 
 .settings-title {
   font-size: 12.5px;
   font-weight: 600;
   letter-spacing: 0.02em;
-  color: var(--text);
+  color: var(--studio-text);
 }
 
 .settings-close {
@@ -44,18 +45,18 @@
   border: 0;
   border-radius: 8px;
   background: transparent;
-  color: var(--muted);
+  color: var(--studio-muted);
   cursor: pointer;
   transition: background 140ms ease, color 140ms ease;
 }
 
 .settings-close:hover {
-  background: rgba(255, 255, 255, 0.09);
-  color: var(--text);
+  background: var(--studio-hover);
+  color: var(--studio-text);
 }
 
 .settings-close:active {
-  background: rgba(255, 255, 255, 0.14);
+  background: var(--studio-active);
 }
 
 /* ------------------------------------------------------------------ body -- */
@@ -73,7 +74,7 @@
   flex-direction: column;
   gap: 2px;
   padding: 14px 10px;
-  border-right: 1px solid var(--border);
+  border-right: 1px solid var(--studio-bar-border);
 }
 
 .settings-nav-item {
@@ -85,7 +86,7 @@
   border: 0;
   border-radius: 9px;
   background: transparent;
-  color: var(--muted);
+  color: var(--studio-muted);
   font-family: inherit;
   font-size: 12.5px;
   text-align: left;
@@ -94,27 +95,27 @@
 }
 
 .settings-nav-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text);
+  background: var(--studio-hover);
+  color: var(--studio-text);
 }
 
 .settings-nav-item[aria-current="page"] {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--text);
+  background: var(--studio-active);
+  color: var(--studio-text);
 }
 
 .settings-nav-item svg {
   flex: none;
-  color: var(--muted-2);
+  color: var(--studio-muted-2);
   transition: color 140ms ease;
 }
 
 .settings-nav-item:hover svg {
-  color: var(--muted);
+  color: var(--studio-muted);
 }
 
 .settings-nav-item[aria-current="page"] svg {
-  color: var(--accent);
+  color: var(--studio-active-text);
 }
 
 .settings-content {
@@ -130,7 +131,7 @@
 
 .settings-content::-webkit-scrollbar-thumb {
   border-radius: 3px;
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--studio-active-border);
 }
 
 .settings-content::-webkit-scrollbar-track {
@@ -161,7 +162,7 @@
 .settings-section-head p {
   margin: 0;
   font-size: 11.5px;
-  color: var(--muted);
+  color: var(--studio-muted);
 }
 
 .settings-card {
@@ -169,9 +170,9 @@
   flex-direction: column;
   gap: 11px;
   padding: 12px 14px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--studio-card-border);
   border-radius: 14px;
-  background: var(--surface-raised);
+  background: var(--studio-card);
 }
 
 .settings-row {
@@ -197,7 +198,7 @@
 .settings-row-hint {
   font-size: 11px;
   line-height: 1.45;
-  color: var(--muted);
+  color: var(--studio-muted);
 }
 
 /* ---------------------------------------------------------------- switch -- */
@@ -208,9 +209,9 @@
   width: 38px;
   height: 22px;
   padding: 0;
-  border: 1px solid var(--border);
+  border: 1px solid var(--studio-input-border);
   border-radius: 11px;
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--studio-well);
   cursor: pointer;
   transition: background 160ms ease, border-color 160ms ease;
 }
@@ -223,18 +224,18 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: var(--muted);
+  background: var(--studio-muted);
   transition: transform 160ms ease, background 160ms ease;
 }
 
 .settings-switch[aria-checked="true"] {
-  background: var(--accent);
+  background: var(--studio-primary);
   border-color: transparent;
 }
 
 .settings-switch[aria-checked="true"]::after {
   transform: translateX(16px);
-  background: #0b0b0e;
+  background: var(--studio-primary-ink);
 }
 
 /* ---------------------------------------------------------------- themes -- */
@@ -250,10 +251,10 @@
   align-items: center;
   gap: 9px;
   padding: 8px 10px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--studio-input-border);
   border-radius: 11px;
   background: transparent;
-  color: var(--muted);
+  color: var(--studio-muted);
   font-family: inherit;
   font-size: 11.5px;
   cursor: pointer;
@@ -261,14 +262,14 @@
 }
 
 .settings-theme:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text);
+  background: var(--studio-hover);
+  color: var(--studio-text);
 }
 
 .settings-theme[aria-checked="true"] {
-  border-color: var(--accent);
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--text);
+  border-color: var(--studio-active-border);
+  background: var(--studio-active);
+  color: var(--studio-text);
 }
 
 .settings-swatch {
@@ -336,7 +337,7 @@
   flex: none;
   width: 46px;
   font-size: 11.5px;
-  color: var(--muted);
+  color: var(--studio-muted);
 }
 
 .settings-slider input[type="range"] {
@@ -354,7 +355,7 @@
 .settings-slider input[type="range"]::-webkit-slider-runnable-track {
   height: 4px;
   border-radius: 2px;
-  background: rgba(255, 255, 255, 0.14);
+  background: var(--studio-well);
 }
 
 .settings-slider input[type="range"]::-webkit-slider-thumb {
@@ -365,12 +366,12 @@
   margin-top: -4.5px;
   border: 0;
   border-radius: 50%;
-  background: var(--text);
+  background: var(--studio-text);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
 }
 
 .settings-slider input[type="range"]:focus-visible {
-  outline: 1px solid var(--accent);
+  outline: 1px solid var(--studio-primary);
   outline-offset: 4px;
   border-radius: 6px;
 }
@@ -380,7 +381,7 @@
   width: 52px;
   text-align: right;
   font-size: 11.5px;
-  color: var(--muted);
+  color: var(--studio-muted);
   font-variant-numeric: tabular-nums;
 }
 
@@ -392,11 +393,11 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border: 1px solid var(--border);
+  border: 1px solid var(--studio-input-border);
   border-radius: 12px;
   background:
-    radial-gradient(60% 70% at 50% 0%, rgba(255, 255, 255, 0.07), transparent 70%),
-    var(--surface);
+    radial-gradient(60% 70% at 50% 0%, var(--studio-stage-glow), transparent 70%),
+    var(--studio-well);
 }
 
 .settings-preview-pill {
@@ -406,8 +407,8 @@
   gap: 8px;
   max-width: 100%;
   overflow: hidden;
-  border: 1px solid var(--border);
-  background: var(--surface-raised);
+  border: 1px solid var(--studio-card-border);
+  background: var(--studio-card);
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
   transition: width 160ms ease, height 160ms ease, border-radius 160ms ease;
 }
@@ -417,7 +418,7 @@
   height: 6px;
   flex: none;
   border-radius: 50%;
-  background: var(--muted-2);
+  background: var(--studio-muted-2);
 }
 
 .settings-preview-bars {
@@ -431,7 +432,7 @@
   width: 3px;
   height: 12px;
   border-radius: 2px;
-  background: linear-gradient(180deg, #ffffff, var(--accent));
+  background: linear-gradient(180deg, var(--studio-text), var(--studio-primary));
   opacity: 0.85;
 }
 
@@ -449,10 +450,10 @@
   flex: none;
   height: 28px;
   padding: 0 12px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--studio-input-border);
   border-radius: 9px;
   background: transparent;
-  color: var(--text);
+  color: var(--studio-text);
   font-family: inherit;
   font-size: 11.5px;
   white-space: nowrap;
@@ -461,11 +462,11 @@
 }
 
 .settings-button:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--studio-hover);
 }
 
 .settings-button:active {
-  background: rgba(255, 255, 255, 0.13);
+  background: var(--studio-active);
 }
 
 .settings-button.is-danger {
@@ -493,9 +494,9 @@
   display: flex;
   gap: 2px;
   padding: 2px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--studio-input-border);
   border-radius: 8px;
-  background: var(--surface-raised);
+  background: var(--studio-well);
   flex: none;
 }
 
@@ -504,7 +505,7 @@
   border: 0;
   border-radius: 6px;
   background: transparent;
-  color: var(--muted);
+  color: var(--studio-muted);
   font: inherit;
   font-size: 11px;
   white-space: nowrap;
@@ -512,9 +513,9 @@
 }
 
 .settings-lang-option[aria-checked="true"] {
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: inset 0 0 0 1px var(--border);
+  background: var(--studio-active);
+  color: var(--studio-text);
+  box-shadow: inset 0 0 0 1px var(--studio-active-border);
 }
 
 /* ------------------------------------------------------------ full-bleed -- */
@@ -540,9 +541,9 @@
   flex-direction: column;
   gap: 12px;
   padding: 20px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--studio-card-border);
   border-radius: 14px;
-  background: var(--shell-surface);
+  background: var(--studio-bg);
 }
 
 .settings-shell .frame-section .section-title {
@@ -561,14 +562,14 @@
 .settings-shell .frame-section .section-number {
   font-size: 9px;
   letter-spacing: 0.05em;
-  color: var(--muted);
+  color: var(--studio-muted);
 }
 
 .settings-shell .frame-hint {
   margin: 0;
   font-size: 11.5px;
   line-height: 1.45;
-  color: var(--muted);
+  color: var(--studio-muted);
 }
 
 /* Group cards below the hint, the same treatment as `.settings-card`; the
@@ -579,9 +580,9 @@
   flex-direction: column;
   gap: 11px;
   padding: 12px 14px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--studio-card-border);
   border-radius: 12px;
-  background: var(--surface-raised);
+  background: var(--studio-card);
 }
 
 .settings-shell .frame-actions {
@@ -589,7 +590,7 @@
   align-items: center;
   gap: 16px;
   padding: 12px 14px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--studio-card-border);
   border-radius: 12px;
-  background: var(--surface-raised);
+  background: var(--studio-card);
 }

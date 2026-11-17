@@ -53,10 +53,12 @@
 /* The overlay must stay transparent; the settings window is opaque. That
    window cannot use `--surface`: it is translucent in the glass theme, which
    would let WebView2's default white page show through the shell. */
+/* Opaque base: the studio palette in settings/studio.css paints this window,
+   so the theme picker re-tints the whole shell instead of only the island. */
 html[data-window="settings"],
 html[data-window="settings"] body,
 html[data-window="settings"] #root {
-  background: var(--shell-surface);
+  background: var(--studio-bg);
 }
 
 html,

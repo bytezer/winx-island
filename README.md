@@ -379,6 +379,10 @@ colours, peaks, glow) is a draft: **Restablecer aspecto** reverts it,
 application theme, the pill size and the position reset; those apply the moment
 you touch them and never wait for the save button.
 
+The window's own look comes from the studio palette in
+`src/settings/studio.css`, so the whole shell - nav, cards, editor - follows
+`appearance.theme` instead of only the island.
+
 `appearance.theme` selects one of four palettes: `midnight` (the default),
 `graphite`, `ocean` and `glass`. The glass palette simulates translucency with
 a specular rim, a reflection layer and static noise; it does not blur the

@@ -1,0 +1,106 @@
+/**
+ * Studio palette for the settings window.
+ *
+ * One token set, four colour variants. The defaults are the blue-grey look the
+ * appearance editor already had; the other three blocks re-tint the same
+ * variables so the theme picker in "El marco" keeps doing something visible.
+ *
+ * Rules of engagement:
+ * - `settings.css` and `appearance.css` consume these and must not hardcode
+ *   chrome colours. Only content stays literal: the RGB strip, the user's
+ *   palette chips and the amber "unsaved" trio.
+ * - The glass block stays OPAQUE. This window is not transparent and a
+ *   translucent value would let WebView2's white page show through.
+ * - The island never consumes these, so defining them on :root is inert there.
+ */
+
+:root,
+:root[data-theme="midnight"] {
+  --studio-bg: #0d1017;
+  --studio-text: #edf1fa;
+  --studio-muted: #98a5bd;
+  --studio-muted-2: #6f7e97;
+  --studio-card: #141922;
+  --studio-card-border: #252c3a;
+  --studio-input: #10151e;
+  --studio-input-border: #2b3342;
+  --studio-well: #0d121a;
+  --studio-hover: #202b3e;
+  --studio-active: #2b364b;
+  --studio-active-border: #39465e;
+  --studio-active-text: #dce6ff;
+  --studio-bar: #10151e;
+  --studio-bar-border: #242c3a;
+  --studio-primary: #c2d1ff;
+  --studio-primary-ink: #172139;
+  --studio-dots: #6b7c9b22;
+  --studio-stage-glow: #2a354b55;
+}
+
+:root[data-theme="graphite"] {
+  --studio-bg: #0e0e10;
+  --studio-text: #efeeec;
+  --studio-muted: #a09c97;
+  --studio-muted-2: #6e6b67;
+  --studio-card: #151518;
+  --studio-card-border: #26262b;
+  --studio-input: #111113;
+  --studio-input-border: #2b2b31;
+  --studio-well: #0d0d0f;
+  --studio-hover: #232327;
+  --studio-active: #2e2e34;
+  --studio-active-border: #43434b;
+  --studio-active-text: #e6e4e0;
+  --studio-bar: #111113;
+  --studio-bar-border: #232327;
+  --studio-primary: #d4d0cb;
+  --studio-primary-ink: #1a1a1c;
+  --studio-dots: #7a777022;
+  --studio-stage-glow: #2e2e3455;
+}
+
+:root[data-theme="ocean"] {
+  --studio-bg: #061119;
+  --studio-text: #e8f2fb;
+  --studio-muted: #8facc4;
+  --studio-muted-2: #5f7a91;
+  --studio-card: #0c1c29;
+  --studio-card-border: #1c3040;
+  --studio-input: #0a1520;
+  --studio-input-border: #24384a;
+  --studio-well: #06141f;
+  --studio-hover: #16303f;
+  --studio-active: #1d3a52;
+  --studio-active-border: #2f5570;
+  --studio-active-text: #d6ecff;
+  --studio-bar: #0a1520;
+  --studio-bar-border: #1c3040;
+  --studio-primary: #a8d4f5;
+  --studio-primary-ink: #0a1a26;
+  --studio-dots: #6b9bc422;
+  --studio-stage-glow: #1d3a5255;
+}
+
+/* Opaque on purpose: this window has no transparency, so the glass variant is
+   a cool, specular-leaning navy rather than an actual translucent pane. */
+:root[data-theme="glass"] {
+  --studio-bg: #0e1014;
+  --studio-text: #f4f7fd;
+  --studio-muted: #a3b1c9;
+  --studio-muted-2: #6f7c93;
+  --studio-card: #171b23;
+  --studio-card-border: #2b313d;
+  --studio-input: #131720;
+  --studio-input-border: #2f3644;
+  --studio-well: #0f1218;
+  --studio-hover: #212835;
+  --studio-active: #29323f;
+  --studio-active-border: #3f4a5c;
+  --studio-active-text: #e2ecff;
+  --studio-bar: #131720;
+  --studio-bar-border: #232a36;
+  --studio-primary: #c3d6f7;
+  --studio-primary-ink: #10141b;
+  --studio-dots: #7b8ea822;
+  --studio-stage-glow: #29323f55;
+}
