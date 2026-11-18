@@ -210,9 +210,9 @@ Without `--list`, the native check controls only a test browser session titled
 ### Local player checks
 
 ```bash
-rustc --test tests/music_library_test.rs -o /tmp/winx-music-library-tests
+rustc --edition 2021 --test tests/music_library_test.rs -o /tmp/winx-music-library-tests
 /tmp/winx-music-library-tests
-rustc --test tests/music_queue_test.rs -o /tmp/winx-music-queue-tests
+rustc --edition 2021 --test tests/music_queue_test.rs -o /tmp/winx-music-queue-tests
 /tmp/winx-music-queue-tests
 npx --no-install esbuild tests/local_player_ui.test.tsx --bundle --platform=node --jsx=automatic --outfile=node_modules/.cache/winx-local-player-ui-tests.cjs
 node node_modules/.cache/winx-local-player-ui-tests.cjs
@@ -410,6 +410,25 @@ media pipeline as the island's own buttons), Settings and Quit.
 The menu labels follow the interface language and rebuild the moment it
 changes, including the Show/Hide wording.
 
+### Settings regression checks
+
+The unified settings window and its studio palette have their own suites:
+
+```bash
+npx --no-install esbuild tests/settings_ui.test.tsx --bundle --platform=node --jsx=automatic --loader:.css=empty --outfile=node_modules/.cache/winx-settings-ui-tests.cjs
+node node_modules/.cache/winx-settings-ui-tests.cjs
+npx --no-install esbuild tests/studio_css.test.ts --bundle --platform=node --outfile=node_modules/.cache/winx-studio-css-tests.cjs
+node node_modules/.cache/winx-studio-css-tests.cjs
+```
+
+The first asserts the embedded editor's markup: the compact brand band, the
+three control blocks, the save/discard footer, the four CSS themes and the
+pill sliders. The second keeps the studio palette honest: the four
+`:root[data-theme=...]` blocks in `src/settings/studio.css` define the same
+`--studio-*` set, every consumed variable exists, and the glass variant stays
+opaque on the surfaces that would otherwise let WebView2's white page show
+through.
+
 ### Interface language
 
 The interface ships in English and Spanish. `locales/en.json` and
@@ -443,6 +462,12 @@ Interface language checks:
 npx --no-install esbuild tests/i18n.test.ts --bundle --platform=node --outfile=node_modules/.cache/winx-i18n-tests.cjs
 node node_modules/.cache/winx-i18n-tests.cjs
 ```
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow (`main` is protected:
+pull requests, squash or rebase merges, no force pushes), the verification
+matrix, and the rules for AI-generated code.
 
 ## License
 
